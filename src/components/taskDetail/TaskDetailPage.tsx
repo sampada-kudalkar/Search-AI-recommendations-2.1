@@ -1,6 +1,5 @@
-import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Check, AlertTriangle } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 import SourceReferenceRow from './SourceReferenceRow'
 import ContentGapTag from './ContentGapTag'
@@ -36,7 +35,6 @@ export default function TaskDetailPage() {
           const currentScore = useAppStore.getState().metrics.searchAiScore
           const potentialScore = Math.min(100, currentScore + 8)
           const currentPct = currentScore
-          const potentialPct = potentialScore
           const acceptedDate = rec.acceptedAt
             ? new Date(rec.acceptedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
             : null
