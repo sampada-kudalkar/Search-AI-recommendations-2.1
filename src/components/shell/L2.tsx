@@ -96,7 +96,7 @@ export default function L2() {
               >
                 <span className="flex-1">{section.label}</span>
                 <img
-                  src={isOpen ? '/assets/chevron_up.svg' : '/assets/chevron_down.svg'}
+                  src={isOpen ? `${import.meta.env.BASE_URL}assets/chevron_up.svg` : `${import.meta.env.BASE_URL}assets/chevron_down.svg`}
                   alt=""
                   className="w-5 h-5 flex-shrink-0"
                 />

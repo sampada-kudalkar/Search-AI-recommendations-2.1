@@ -11,10 +11,10 @@ export default function RecommendationsPage() {
   const rejected  = recommendations.filter(r => r.status === 'rejected').length
 
   const tiles = [
-    { count: pending,   label: 'Pending',   icon: '/assets/pending-icon.svg',   tab: 'pending'   as const },
-    { count: accepted,  label: 'Accepted',  icon: '/assets/check_circle.svg',   tab: 'accepted'  as const },
-    { count: completed, label: 'Completed', icon: '/assets/check_circle.svg',   tab: 'completed' as const },
-    { count: rejected,  label: 'Rejected',  icon: '/assets/Component 75-1.svg', tab: 'rejected'  as const },
+    { count: pending,   label: 'Pending',   icon: `${import.meta.env.BASE_URL}assets/pending-icon.svg`,   tab: 'pending'   as const },
+    { count: accepted,  label: 'Accepted',  icon: `${import.meta.env.BASE_URL}assets/check_circle.svg`,   tab: 'accepted'  as const },
+    { count: completed, label: 'Completed', icon: `${import.meta.env.BASE_URL}assets/check_circle.svg`,   tab: 'completed' as const },
+    { count: rejected,  label: 'Rejected',  icon: `${import.meta.env.BASE_URL}assets/Component 75-1.svg`, tab: 'rejected'  as const },
   ]
 
   return (
@@ -49,7 +49,7 @@ export default function RecommendationsPage() {
           {/* Left: AI icon + text */}
           <div className="flex flex-1 items-center gap-0">
             <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
-              <img src="/assets/AI Icon.svg" alt="" className="w-5 h-5" />
+              <img src={`${import.meta.env.BASE_URL}assets/AI Icon.svg`} alt="" className="w-5 h-5" />
             </div>
             <p className="text-[14px] text-[#212121] leading-[20px] tracking-[-0.28px]">
               Increase your search AI score by ~{pending * 3}% by completing these {pending} task{pending !== 1 ? 's' : ''}

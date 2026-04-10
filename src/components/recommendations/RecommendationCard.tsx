@@ -40,7 +40,7 @@ function Chip({ children, className }: { children: React.ReactNode; className?: 
 function QuickWinChip() {
   return (
     <span className="inline-flex items-center gap-1 text-[12px] leading-[18px] tracking-[-0.24px] whitespace-nowrap font-normal text-[#555]">
-      <img src="/assets/electric_bolt.svg" alt="" className="w-3.5 h-3.5 flex-shrink-0" />
+      <img src={`${import.meta.env.BASE_URL}assets/electric_bolt.svg`} alt="" className="w-3.5 h-3.5 flex-shrink-0" />
       Quick wins
     </span>
   )
@@ -50,7 +50,7 @@ function StatusDot({ status }: { status: string }) {
   return (
     <div className="flex items-center gap-1.5">
       {status === 'pending'
-        ? <img src="/assets/pending-icon.svg" alt="pending" className="w-3 h-3 flex-shrink-0" />
+        ? <img src={`${import.meta.env.BASE_URL}assets/pending-icon.svg`} alt="pending" className="w-3 h-3 flex-shrink-0" />
         : <span className={`w-3 h-3 rounded-full border-2 border-white flex-shrink-0 ${STATUS_DOT[status] ?? 'bg-[#a3a3a3]'}`} />
       }
       <span className="text-[12px] text-[#555] leading-[18px] tracking-[-0.24px]">{STATUS_LABEL[status] ?? status}</span>
@@ -67,11 +67,11 @@ function AssetPreview({ asset }: { asset: NonNullable<Recommendation['generatedA
       <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
         <div className="flex gap-5 items-start">
           <div className="w-[88px] h-[87px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#e2d8f5]">
-            <img src="/assets/Frame 2147224172.png" alt="" className="w-full h-full object-cover" />
+            <img src={`${import.meta.env.BASE_URL}assets/Frame 2147224172.png`} alt="" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
-              <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+              <img src={`${import.meta.env.BASE_URL}assets/AI Icon.svg`} alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
               <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">Created by Content hub</span>
             </div>
             <p className="text-[14px] text-[#212121] leading-[20px] tracking-[-0.28px] mb-1">{asset.title}</p>
@@ -88,7 +88,7 @@ function AssetPreview({ asset }: { asset: NonNullable<Recommendation['generatedA
     return (
       <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
         <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
-          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <img src={`${import.meta.env.BASE_URL}assets/AI Icon.svg`} alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
           <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">{asset.title}</span>
         </div>
         <ul className="flex flex-col gap-1 mb-2">
@@ -111,7 +111,7 @@ function AssetPreview({ asset }: { asset: NonNullable<Recommendation['generatedA
     return (
       <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
         <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
-          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <img src={`${import.meta.env.BASE_URL}assets/AI Icon.svg`} alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
           <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">{asset.title}</span>
         </div>
         <p className="text-[11px] font-mono text-[#555] leading-[17px] whitespace-pre-wrap break-all">
@@ -129,7 +129,7 @@ function AssetPreview({ asset }: { asset: NonNullable<Recommendation['generatedA
     return (
       <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
         <div className="flex items-center gap-1 mb-3 relative pl-[22px]">
-          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <img src={`${import.meta.env.BASE_URL}assets/AI Icon.svg`} alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
           <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">Citation gap analysis</span>
         </div>
         <div className="flex flex-col gap-1.5">
@@ -360,7 +360,7 @@ export default function RecommendationCard({ rec, isKanban = false }: Props) {
         {/* ── completed summary ── */}
         {isCompleted && (
           <div className="mb-4 py-3 px-4 bg-[#f1faf0] rounded-[6px] flex items-start gap-2">
-            <img src="/assets/check_circle.svg" alt="" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <img src={`${import.meta.env.BASE_URL}assets/check_circle.svg`} alt="" className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <div>
               <p className="text-[13px] text-[#377e2c]">All {rec.checklist.length} steps completed</p>
               <p className="text-[12px] text-[#555] mt-0.5 leading-[18px]">

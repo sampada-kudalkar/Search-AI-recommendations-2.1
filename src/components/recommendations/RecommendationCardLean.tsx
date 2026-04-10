@@ -17,7 +17,7 @@ export default function RecommendationCardLean({ rec }: Props) {
 
       {/* Left: green check icon */}
       <div className="flex-shrink-0 mt-0.5">
-        <img src="/assets/check_circle.svg" alt="" className="w-4 h-4 opacity-80" />
+        <img src={`${import.meta.env.BASE_URL}assets/check_circle.svg`} alt="" className="w-4 h-4 opacity-80" />
       </div>
 
       {/* Center: content — constrained to 70% */}

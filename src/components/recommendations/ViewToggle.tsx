@@ -12,7 +12,7 @@ export default function ViewToggle() {
           viewMode === 'kanban' ? 'bg-[#e5e9f0]' : 'bg-white hover:bg-[#f5f5f5]'
         }`}
       >
-        <img src="/assets/grid_view.svg" alt="Board" className="w-5 h-5" />
+        <img src={`${import.meta.env.BASE_URL}assets/grid_view.svg`} alt="Board" className="w-5 h-5" />
       </button>
       <button
         title="List view"
@@ -21,7 +21,7 @@ export default function ViewToggle() {
           viewMode === 'list' ? 'bg-[#e5e9f0]' : 'bg-white hover:bg-[#f5f5f5]'
         }`}
       >
-        <img src="/assets/Table view.svg" alt="List" className="w-5 h-5" />
+        <img src={`${import.meta.env.BASE_URL}assets/Table view.svg`} alt="List" className="w-5 h-5" />
       </button>
     </div>
   )

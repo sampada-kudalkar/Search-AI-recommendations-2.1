@@ -1,21 +1,21 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
 const navItems = [
-  { src: '/assets/Navigation buttons-2.svg', label: 'Home' },
-  { src: '/assets/Navigation buttons.svg',   label: 'Inbox' },
-  { src: '/assets/Navigation buttons-1.svg', label: 'Listings' },
-  { src: '/assets/Component 73.svg',         label: 'Search AI', path: '/', activeBuiltIn: true },
-  { src: '/assets/Component 63.svg',         label: 'Reviews' },
-  { src: '/assets/Component 64.svg',         label: 'Referrals' },
-  { src: '/assets/Component 65.svg',         label: 'Payments' },
-  { src: '/assets/Component 66.svg',         label: 'Appointments' },
-  { src: '/assets/Component 67.svg',         label: 'Social' },
-  { src: '/assets/Component 68.svg',         label: 'Surveys' },
-  { src: '/assets/Component 69.svg',         label: 'Ticketing' },
-  { src: '/assets/Component 70.svg',         label: 'Contacts' },
-  { src: '/assets/Component 71.svg',         label: 'Campaigns' },
-  { src: '/assets/Component 72.svg',         label: 'Reports' },
-  { src: '/assets/Component 74.svg',         label: 'Competitors' },
+  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons-2.svg`, label: 'Home' },
+  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons.svg`,   label: 'Inbox' },
+  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons-1.svg`, label: 'Listings' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 73.svg`,         label: 'Search AI', path: '/', activeBuiltIn: true },
+  { src: `${import.meta.env.BASE_URL}assets/Component 63.svg`,         label: 'Reviews' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 64.svg`,         label: 'Referrals' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 65.svg`,         label: 'Payments' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 66.svg`,         label: 'Appointments' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 67.svg`,         label: 'Social' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 68.svg`,         label: 'Surveys' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 69.svg`,         label: 'Ticketing' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 70.svg`,         label: 'Contacts' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 71.svg`,         label: 'Campaigns' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 72.svg`,         label: 'Reports' },
+  { src: `${import.meta.env.BASE_URL}assets/Component 74.svg`,         label: 'Competitors' },
 ]
 
 export default function L1() {
@@ -27,7 +27,7 @@ export default function L1() {
     <div className="flex flex-col h-full w-10 bg-selected border-r border-border-primary flex-shrink-0">
       {/* Birdeye Logo */}
       <div className="flex items-center justify-center h-[52px] border-b border-border-primary flex-shrink-0">
-        <img src="/assets/agent icons/Birdeye.svg" alt="Birdeye" className="w-7 h-7" />
+        <img src={`${import.meta.env.BASE_URL}assets/agent icons/Birdeye.svg`} alt="Birdeye" className="w-7 h-7" />
       </div>
 
       {/* Nav icons */}
@@ -54,7 +54,7 @@ export default function L1() {
           title="Settings"
           className="flex items-center justify-center w-7 h-7 rounded-sm cursor-default overflow-hidden"
         >
-          <img src="/assets/Component 75.svg" alt="Settings" className="w-7 h-7 block flex-shrink-0" />
+          <img src={`${import.meta.env.BASE_URL}assets/Component 75.svg`} alt="Settings" className="w-7 h-7 block flex-shrink-0" />
         </button>
       </div>
     </div>

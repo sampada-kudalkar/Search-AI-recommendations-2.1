@@ -6,11 +6,11 @@ interface HeaderProps {
 }
 
 const TOP_NAV_ICONS = [
-  { src: '/assets/topnav-63.svg', alt: 'Add',      label: 'add_circle' },
-  { src: '/assets/topnav-64.svg', alt: 'Help',     label: 'help' },
-  { src: '/assets/topnav-65.svg', alt: 'Settings', label: 'settings' },
-  { src: '/assets/topnav-66.svg', alt: 'Profile',  label: 'avatar' },
-  { src: '/assets/topnav-67.svg', alt: 'Menu',     label: 'menu' },
+  { src: `${import.meta.env.BASE_URL}assets/topnav-63.svg`, alt: 'Add',      label: 'add_circle' },
+  { src: `${import.meta.env.BASE_URL}assets/topnav-64.svg`, alt: 'Help',     label: 'help' },
+  { src: `${import.meta.env.BASE_URL}assets/topnav-65.svg`, alt: 'Settings', label: 'settings' },
+  { src: `${import.meta.env.BASE_URL}assets/topnav-66.svg`, alt: 'Profile',  label: 'avatar' },
+  { src: `${import.meta.env.BASE_URL}assets/topnav-67.svg`, alt: 'Menu',     label: 'menu' },
 ]
 
 export default function Header({ title, showInfoIcon = false, headerRight, onBack }: HeaderProps) {
@@ -50,7 +50,7 @@ export default function Header({ title, showInfoIcon = false, headerRight, onBac
             {title}
           </span>
           {showInfoIcon && (
-            <img src="/assets/info.svg" alt="info" className="w-5 h-5 flex-shrink-0 opacity-60" />
+            <img src={`${import.meta.env.BASE_URL}assets/info.svg`} alt="info" className="w-5 h-5 flex-shrink-0 opacity-60" />
           )}
         </div>
 
@@ -60,12 +60,12 @@ export default function Header({ title, showInfoIcon = false, headerRight, onBac
 
           {/* more_vert */}
           <button className="flex items-center justify-center size-9 bg-white border border-[#e5e9f0] rounded-[4px] hover:bg-[#f5f5f5] transition-all">
-            <img src="/assets/more_vert.svg" alt="More" className="w-5 h-5" />
+            <img src={`${import.meta.env.BASE_URL}assets/more_vert.svg`} alt="More" className="w-5 h-5" />
           </button>
 
           {/* filter_list */}
           <button className="flex items-center justify-center size-9 bg-white border border-[#e5e9f0] rounded-[4px] hover:bg-[#f5f5f5] transition-all">
-            <img src="/assets/filter_list.svg" alt="Filter" className="w-5 h-5" />
+            <img src={`${import.meta.env.BASE_URL}assets/filter_list.svg`} alt="Filter" className="w-5 h-5" />
           </button>
         </div>
       </div>
