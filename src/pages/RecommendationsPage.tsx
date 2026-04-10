@@ -65,9 +65,9 @@ export default function RecommendationsPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className={`flex-1 min-h-0 ${viewMode === 'board' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+      <div className={`flex-1 min-h-0 ${viewMode === 'kanban' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
         {viewMode === 'list' ? (
-          <div className="px-5 pb-6">
+          <div className="px-5 pb-6 max-w-[70%] mx-auto">
             <ListView />
           </div>
         ) : (

@@ -182,7 +182,19 @@ Not sure if Invisalign is right for you? Schedule a **free consultation** at our
       platforms: ['ChatGPT', 'Gemini', 'Perplexity'],
       summary: 'You appear in 0 out of 8 tested prompts about veneers in Austin. Capital City Smiles appears in 7 of 8.',
     },
-    generatedAsset: null,
+    generatedAsset: {
+      type: 'content_suggestions',
+      title: 'Suggested content to add to your Veneers page',
+      previewText: 'Your porcelain veneers page is missing the key sections competitors use to earn LLM citations.',
+      fullContent: `Per-tooth pricing range ($800–$1,500) with factors that affect cost
+2-visit process walkthrough: smile design consultation → custom fabrication → bonding
+Porcelain vs composite veneers comparison with longevity data
+Before & after patient results gallery with consent forms
+FAQs: "How long do veneers last?", "Are veneers reversible?", "Do veneers hurt?"
+Local testimonials mentioning specific procedures and outcomes
+Care & maintenance instructions to signal comprehensive expertise`,
+      approved: false,
+    },
     checklist: [
       { id: 'step-1', label: 'Audit current veneers page content', description: 'Review existing page and identify content gaps compared to competitors.', completed: false, autoCompleted: false },
       { id: 'step-2', label: 'Add cost, process, and FAQ sections', description: 'Expand the page with per-tooth pricing, the 2-visit process, and at least 5 FAQs with structured markup.', completed: false, autoCompleted: false },
@@ -197,7 +209,7 @@ Not sure if Invisalign is right for you? Schedule a **free consultation** at our
     title: 'Add LocalBusiness and DentistSchema markup to your homepage and service pages',
     description:
       'You are missing structured data that AI engines use to confidently cite your practice. Adding schema markup can increase LLM citation confidence by up to 40%.',
-    category: 'Schema',
+    category: 'Website improvement',
     impactLabel: 'Improve Visibility score by ~6%',
     effort: 'Quick win',
     status: 'pending',
@@ -604,7 +616,18 @@ Yes. We use a desensitizing gel before and after treatment. Most sensitivity res
       platforms: ['ChatGPT', 'Gemini', 'Perplexity'],
       summary: 'Not listed on Zocdoc or Healthgrades means you are invisible to the primary citation sources LLMs use for local dentist discovery.',
     },
-    generatedAsset: null,
+    generatedAsset: {
+      type: 'citations',
+      title: 'Citation gap: Zocdoc & Healthgrades',
+      previewText: 'Your top competitors are being cited on Zocdoc and Healthgrades — two of the top 5 sources LLMs use for local dentist discovery. You are not listed on either.',
+      fullContent: JSON.stringify({
+        platforms: [
+          { name: 'Zocdoc', competitors: [{ name: 'Domain Dental Care', citations: 44 }, { name: 'Austin Orthodontics Group', citations: 40 }], youCitations: 0 },
+          { name: 'Healthgrades', competitors: [{ name: 'Domain Dental Care', reviews: 142 }, { name: 'Heartland Dental Austin', reviews: 98 }], youCitations: 0 },
+        ],
+      }),
+      approved: false,
+    },
     checklist: [
       { id: 'step-1', label: 'Create Zocdoc provider profile', description: 'Go to zocdoc.com/join and complete your provider profile. Takes 20–30 minutes.', completed: false, autoCompleted: false, ctaLabel: 'Open Zocdoc', ctaAction: 'copy_link' },
       { id: 'step-2', label: 'Claim or create Healthgrades listing', description: 'Claim your Healthgrades profile at healthgrades.com/provider-resources.', completed: false, autoCompleted: false, ctaLabel: 'Open Healthgrades', ctaAction: 'copy_link' },

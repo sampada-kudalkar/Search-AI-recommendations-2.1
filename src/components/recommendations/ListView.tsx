@@ -1,5 +1,6 @@
 import { useAppStore } from '../../store/useAppStore'
 import RecommendationCard from './RecommendationCard'
+import RecommendationCardLean from './RecommendationCardLean'
 
 export default function ListView() {
   const { recommendations, activeTab } = useAppStore()
@@ -16,6 +17,17 @@ export default function ListView() {
         </div>
         <p className="text-[16px]">No tasks in this category</p>
         <p className="text-[14px] mt-1">Click a tile above to switch views</p>
+      </div>
+    )
+  }
+
+  // Completed tab → Apple-style lean rows (no boxes, dividers only)
+  if (activeTab === 'completed') {
+    return (
+      <div className="divide-y divide-[#f0f0f0] pt-2">
+        {filtered.map(rec => (
+          <RecommendationCardLean key={rec.id} rec={rec} />
+        ))}
       </div>
     )
   }

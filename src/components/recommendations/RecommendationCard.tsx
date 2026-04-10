@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Loader2, Check, MoreVertical } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Loader2, Check } from 'lucide-react'
 import type { Recommendation } from '../../types'
 import { useAppStore } from '../../store/useAppStore'
 import AssignModal from './AssignModal'
@@ -36,6 +37,15 @@ function Chip({ children, className }: { children: React.ReactNode; className?: 
   )
 }
 
+function QuickWinChip() {
+  return (
+    <span className="inline-flex items-center gap-1 text-[12px] leading-[18px] tracking-[-0.24px] whitespace-nowrap font-normal text-[#555]">
+      <img src="/assets/electric_bolt.svg" alt="" className="w-3.5 h-3.5 flex-shrink-0" />
+      Quick wins
+    </span>
+  )
+}
+
 function StatusDot({ status }: { status: string }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -49,67 +59,96 @@ function StatusDot({ status }: { status: string }) {
 }
 
 /* ── asset preview ───────────────────────────────────────────── */
-function AssetPreview({
-  recId,
-  asset,
-  onApprove,
-}: {
-  recId: string
-  asset: NonNullable<Recommendation['generatedAsset']>
-  onApprove?: (recId: string) => void
-}) {
-  const typeLabel = { blog: 'view blog', faq: 'view FAQ', schema: 'view schema', social: 'view post' }[asset.type] ?? 'view'
+function AssetPreview({ asset }: { asset: NonNullable<Recommendation['generatedAsset']> }) {
 
-  return (
-    <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
-      <div className="flex gap-5 items-start">
-        {/* Thumbnail */}
-        <div className="w-[88px] h-[87px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#e2d8f5]">
-          <img
-            src="/assets/Frame 2147224172.png"
-            alt=""
-            className="w-full h-full object-cover"
-          />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* "Created by Content hub" with AI icon */}
-          <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
-            <img
-              src="/assets/AI Icon.svg"
-              alt=""
-              className="absolute left-0 top-[-2px] w-[22px] h-[22px]"
-            />
-            <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">
-              Created by Content hub
-            </span>
+  /* ── blog / faq: thumbnail + text ── */
+  if (asset.type === 'blog' || asset.type === 'faq' || asset.type === 'social') {
+    return (
+      <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
+        <div className="flex gap-5 items-start">
+          <div className="w-[88px] h-[87px] rounded-[8px] overflow-hidden flex-shrink-0 bg-[#e2d8f5]">
+            <img src="/assets/Frame 2147224172.png" alt="" className="w-full h-full object-cover" />
           </div>
-
-          {/* Asset title */}
-          <p className="text-[14px] text-[#212121] leading-[20px] tracking-[-0.28px] mb-1">
-            {asset.title}
-          </p>
-
-          {/* Preview + link */}
-          <p className="text-[12px] text-[#555] leading-[18px] tracking-[-0.24px]">
-            <span>{asset.previewText.slice(0, 90)}</span>
-            <span>{' ... '}</span>
-            {onApprove ? (
-              <button
-                onClick={() => onApprove(recId)}
-                className="text-[#1976d2] hover:underline"
-              >
-                {asset.approved ? '✓ Approved' : 'Approve →'}
-              </button>
-            ) : (
-              <button className="text-[#1976d2] hover:underline">{typeLabel}</button>
-            )}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
+              <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+              <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">Created by Content hub</span>
+            </div>
+            <p className="text-[14px] text-[#212121] leading-[20px] tracking-[-0.28px] mb-1">{asset.title}</p>
+            <p className="text-[12px] text-[#555] leading-[18px] tracking-[-0.24px]">{asset.previewText.slice(0, 90)} ...</p>
+          </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
+
+  /* ── content_suggestions: purple box, 2 bullets + view more ── */
+  if (asset.type === 'content_suggestions') {
+    const topics = asset.fullContent.split('\n').filter(Boolean)
+    return (
+      <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
+        <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
+          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">{asset.title}</span>
+        </div>
+        <ul className="flex flex-col gap-1 mb-2">
+          {topics.slice(0, 2).map((line, i) => (
+            <li key={i} className="flex items-start gap-2">
+              <span className="text-[#6834b7] text-[13px] leading-[19px] flex-shrink-0">·</span>
+              <span className="text-[12px] text-[#555] leading-[19px]">{line.replace(/^\d+\.\s*/, '').replace(/^[-•]\s*/, '')}</span>
+            </li>
+          ))}
+        </ul>
+        {topics.length > 2 && (
+          <span className="text-[12px] text-[#6834b7] cursor-pointer hover:underline">View more →</span>
+        )}
+      </div>
+    )
+  }
+
+  /* ── schema: purple box with inline code ── */
+  if (asset.type === 'schema') {
+    return (
+      <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
+        <div className="flex items-center gap-1 mb-2 relative pl-[22px]">
+          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">{asset.title}</span>
+        </div>
+        <p className="text-[11px] font-mono text-[#555] leading-[17px] whitespace-pre-wrap break-all">
+          {asset.previewText.slice(0, 180)} <span className="text-[#a0a0a0]">...</span>
+        </p>
+      </div>
+    )
+  }
+
+  /* ── citations: purple box, plain text sentences ── */
+  if (asset.type === 'citations') {
+    type PlatformData = { name: string; competitors: { name: string; citations?: number; reviews?: number }[]; youCitations: number }
+    let platforms: PlatformData[] = []
+    try { platforms = (JSON.parse(asset.fullContent) as { platforms: PlatformData[] }).platforms } catch { /* noop */ }
+    return (
+      <div className="bg-[#f9f7fd] rounded-[8px] px-4 py-[18px]">
+        <div className="flex items-center gap-1 mb-3 relative pl-[22px]">
+          <img src="/assets/AI Icon.svg" alt="" className="absolute left-0 top-[-2px] w-[22px] h-[22px]" />
+          <span className="text-[12px] text-[#212121] leading-[18px] tracking-[-0.24px]">Citation gap analysis</span>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          {platforms.map(platform => {
+            const top = platform.competitors[0]
+            const count = top.citations ?? top.reviews ?? 0
+            return (
+              <p key={platform.name} className="text-[12px] text-[#555] leading-[18px]">
+                On <span className="text-[#212121] font-medium">{platform.name}</span>, {top.name} received{' '}
+                <span className="text-[#1976d2] font-medium">{count} citations</span>. You are not listed.
+              </p>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
 
 /* ── checklist ───────────────────────────────────────────────── */
@@ -203,13 +242,13 @@ interface Props {
 export default function RecommendationCard({ rec, isKanban = false }: Props) {
   const { rejectRec, toggleChecklistItem, approveAsset, completeRec, regeneratingIds } = useAppStore()
   const [showAssign, setShowAssign] = useState(false)
-  const [showOverflow, setShowOverflow] = useState(false)
+  const navigate = useNavigate()
   const isRegenerating = regeneratingIds.has(rec.id)
 
   /* ── rejected ── */
   if (rec.status === 'rejected') {
     return (
-      <div className="bg-white border border-[#eaeaea] pt-5 px-5 pb-5 opacity-60 transition-opacity duration-300">
+      <div className="bg-white border-b border-[#eaeaea] pt-5 px-5 pb-5 opacity-60 transition-opacity duration-300">
         <div className="flex items-center gap-2.5">
           {isRegenerating ? (
             <>
@@ -236,7 +275,7 @@ export default function RecommendationCard({ rec, isKanban = false }: Props) {
         <div className="bg-white border border-[#eaeaea] p-3 hover:border-[#c0c0c0] transition-all">
           <div className="flex flex-wrap gap-1.5 mb-2">
             <Chip className="bg-[#eaeaea] text-[#212121]">{rec.category}</Chip>
-            <Chip className={EFFORT_STYLE[rec.effort] ?? 'bg-[#fff9ea] text-[#c69204]'}>{rec.effort}</Chip>
+            {rec.effort === 'Quick win' ? <QuickWinChip /> : <Chip className={EFFORT_STYLE[rec.effort] ?? 'bg-[#fff9ea] text-[#c69204]'}>{rec.effort}</Chip>}
           </div>
           <p className="text-[13px] text-[#212121] leading-[18px] tracking-[-0.26px] line-clamp-2 mb-2 font-normal">
             {rec.title}
@@ -275,14 +314,15 @@ export default function RecommendationCard({ rec, isKanban = false }: Props) {
   return (
     <>
       <div
-        className={`bg-white border border-[#eaeaea] pt-5 px-5 pb-[30px] hover:border-[#c0c0c0] transition-all ${
+        onClick={() => navigate(`/recommendations/${rec.id}`)}
+        className={`bg-white border-b border-[#eaeaea] pt-5 px-5 pb-[30px] cursor-pointer hover:shadow-[0_4px_18px_rgba(0,0,0,0.07)] transition-shadow ${
           isActive ? 'border-l-[3px] border-l-[#6834b7]' : ''
         } ${isCompleted ? 'border-l-[3px] border-l-[#4cae3d]' : ''}`}
       >
         {/* ── chips row ── */}
         <div className="flex flex-wrap gap-[9px] items-center mb-3">
           <Chip className="bg-[#eaeaea] text-[#212121]">{rec.category}</Chip>
-          <Chip className={EFFORT_STYLE[rec.effort] ?? 'bg-[#fff9ea] text-[#c69204]'}>{rec.effort}</Chip>
+          {rec.effort === 'Quick win' ? <QuickWinChip /> : <Chip className={EFFORT_STYLE[rec.effort] ?? 'bg-[#fff9ea] text-[#c69204]'}>{rec.effort}</Chip>}
           {rec.status !== 'pending' && <StatusDot status={rec.status} />}
           {rec.status === 'pending' && <StatusDot status="pending" />}
         </div>
@@ -302,11 +342,7 @@ export default function RecommendationCard({ rec, isKanban = false }: Props) {
         {/* ── asset preview ── */}
         {rec.generatedAsset && !isCompleted && (
           <div className="mb-3">
-            <AssetPreview
-              recId={rec.id}
-              asset={rec.generatedAsset}
-              onApprove={isActive ? approveAsset : undefined}
-            />
+            <AssetPreview asset={rec.generatedAsset} />
           </div>
         )}
 
@@ -341,43 +377,17 @@ export default function RecommendationCard({ rec, isKanban = false }: Props) {
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">
-            {/* Overflow */}
-            <div className="relative">
-              <button
-                onClick={() => setShowOverflow(v => !v)}
-                className="w-8 h-8 flex items-center justify-center text-[#555] hover:bg-[#f5f5f5] rounded transition-colors"
-              >
-                <MoreVertical size={16} />
-              </button>
-              {showOverflow && (
-                <div className="absolute right-0 bottom-9 z-20 bg-white border border-[#eaeaea] rounded shadow-md min-w-[160px] py-1">
-                  {['View full details', 'Remind me later', 'Skip task'].map(opt => (
-                    <button
-                      key={opt}
-                      onClick={() => {
-                        setShowOverflow(false)
-                        if (opt === 'Skip task') rejectRec(rec.id)
-                      }}
-                      className="w-full text-left px-3 py-2 text-[13px] text-[#212121] hover:bg-[#f5f5f5] transition-colors"
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
             {/* Pending actions */}
             {rec.status === 'pending' && (
               <>
                 <button
-                  onClick={() => rejectRec(rec.id)}
+                  onClick={e => { e.stopPropagation(); rejectRec(rec.id) }}
                   className="border border-[#e5e9f0] text-[16px] text-[#212121] leading-[24px] tracking-[-0.32px] px-3 py-2 rounded-sm hover:bg-[#f5f5f5] transition-colors font-normal"
                 >
                   Reject
                 </button>
                 <button
-                  onClick={() => setShowAssign(true)}
+                  onClick={e => { e.stopPropagation(); setShowAssign(true) }}
                   className="bg-[#1976d2] text-[16px] text-white leading-[24px] tracking-[-0.32px] px-3 py-2 rounded-sm hover:bg-[#1565c0] transition-colors font-normal"
                 >
                   Accept

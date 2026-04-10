@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core'
-import type { DragEndEvent, DragOverEvent, DragStartEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 import { useAppStore } from '../../store/useAppStore'
 import KanbanColumn from './KanbanColumn'
 import type { RecStatus } from '../../types'

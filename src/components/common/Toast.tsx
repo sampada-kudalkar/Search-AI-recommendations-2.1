@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { CheckCircle, Info, AlertCircle, X } from 'lucide-react'
 import { useAppStore } from '../../store/useAppStore'
 

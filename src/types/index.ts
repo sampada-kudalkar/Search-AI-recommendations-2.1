@@ -1,5 +1,5 @@
 export type RecStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected'
-export type RecCategory = 'Website content' | 'Schema' | 'Reviews' | 'Social' | 'FAQ'
+export type RecCategory = 'Website content' | 'Website improvement' | 'Reviews' | 'Social' | 'FAQ'
 export type LLMPlatform = 'ChatGPT' | 'Gemini' | 'Perplexity' | 'Claude'
 export type AssignChoice = 'self' | 'team' | 'remind'
 export type ViewMode = 'list' | 'kanban'
@@ -40,7 +40,7 @@ export interface ChecklistStep {
 }
 
 export interface GeneratedAsset {
-  type: 'blog' | 'faq' | 'schema' | 'social'
+  type: 'blog' | 'faq' | 'schema' | 'social' | 'content_suggestions' | 'citations'
   title: string
   previewText: string
   fullContent: string

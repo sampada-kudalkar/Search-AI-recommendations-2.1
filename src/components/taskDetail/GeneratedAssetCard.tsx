@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FileText, CheckCircle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import { CheckCircle, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
 import type { GeneratedAsset } from '../../types'
 import { useAppStore } from '../../store/useAppStore'
 
@@ -13,7 +13,7 @@ export default function GeneratedAssetCard({ asset, recId, disabled }: Props) {
   const { approveAsset } = useAppStore()
   const [expanded, setExpanded] = useState(false)
 
-  const typeIcons = { blog: '📝', faq: '❓', schema: '🔗', social: '📱' }
+  const typeIcons: Record<string, string> = { blog: '📝', faq: '❓', schema: '🔗', social: '📱', content_suggestions: '✏️', citations: '📊' }
 
   return (
     <div className={`border rounded-md overflow-hidden ${asset.approved ? 'border-green-value/30 bg-green-bg/30' : 'border-ai-purple-border bg-ai-purple-bg'}`}>
