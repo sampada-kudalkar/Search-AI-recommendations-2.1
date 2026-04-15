@@ -1,22 +1,32 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 
-const navItems = [
-  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons-2.svg`, label: 'Home' },
-  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons.svg`,   label: 'Inbox' },
-  { src: `${import.meta.env.BASE_URL}assets/Navigation buttons-1.svg`, label: 'Listings' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 73.svg`,         label: 'Search AI', path: '/', activeBuiltIn: true },
-  { src: `${import.meta.env.BASE_URL}assets/Component 63.svg`,         label: 'Reviews' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 64.svg`,         label: 'Referrals' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 65.svg`,         label: 'Payments' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 66.svg`,         label: 'Appointments' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 67.svg`,         label: 'Social' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 68.svg`,         label: 'Surveys' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 69.svg`,         label: 'Ticketing' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 70.svg`,         label: 'Contacts' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 71.svg`,         label: 'Campaigns' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 72.svg`,         label: 'Reports' },
-  { src: `${import.meta.env.BASE_URL}assets/Component 74.svg`,         label: 'Competitors' },
+/**
+ * Primary Rail — matches primary-rail.html GitHub spec:
+ *  width: 40px  bg: #e5e9f0  border-right: 1px #eaeaea
+ *  rail-icon: 28×28, border-radius 4px
+ *  logo area: 52px height (matches top-nav row in Header)
+ *  rail-divider: 20px wide, 1px, #eaeaea
+ */
+
+const NAV_ICONS = [
+  { src: 'Navigation buttons-2.svg', label: 'Home' },
+  { src: 'Navigation buttons.svg',   label: 'Inbox' },
+  { src: 'Navigation buttons-1.svg', label: 'Listings' },
+  { src: 'Component 73.svg',         label: 'Search AI', path: '/' },
+  { src: 'Component 63.svg',         label: 'Reviews' },
+  { src: 'Component 64.svg',         label: 'Referrals' },
+  { src: 'Component 65.svg',         label: 'Payments' },
+  { src: 'Component 66.svg',         label: 'Appointments' },
+  { src: 'Component 67.svg',         label: 'Social' },
+  { src: 'Component 68.svg',         label: 'Surveys' },
+  { src: 'Component 69.svg',         label: 'Ticketing' },
+  { src: 'Component 70.svg',         label: 'Contacts' },
+  { src: 'Component 71.svg',         label: 'Campaigns' },
+  { src: 'Component 72.svg',         label: 'Reports' },
+  { src: 'Component 74.svg',         label: 'Competitors' },
 ]
+
+const BASE = import.meta.env.BASE_URL
 
 export default function L1() {
   const navigate = useNavigate()
@@ -24,37 +34,51 @@ export default function L1() {
   const isSearchAI = location.pathname === '/' || location.pathname.startsWith('/recommendations')
 
   return (
-    <div className="flex flex-col h-full w-10 bg-selected border-r border-border-primary flex-shrink-0">
-      {/* Birdeye Logo */}
-      <div className="flex items-center justify-center h-[52px] border-b border-border-primary flex-shrink-0">
-        <img src={`${import.meta.env.BASE_URL}assets/agent icons/Birdeye.svg`} alt="Birdeye" className="w-7 h-7" />
+    <div
+      style={{ width: 40, minHeight: '100vh', background: '#e5e9f0', borderRight: '1px solid #eaeaea' }}
+      className="flex flex-col items-center flex-shrink-0 z-10"
+    >
+      {/* Logo — 52px height matches top-nav row */}
+      <div
+        style={{ height: 52, borderBottom: '1px solid #eaeaea' }}
+        className="w-full flex items-center justify-center flex-shrink-0"
+      >
+        <img src={`${BASE}assets/agent icons/Birdeye.svg`} alt="Birdeye" className="w-7 h-7 block" />
       </div>
 
       {/* Nav icons */}
-      <div className="flex flex-col items-center gap-1 py-2 flex-1 overflow-y-auto scrollbar-hide">
-        {navItems.map((item) => {
+      <div className="flex flex-col items-center gap-1 py-2 flex-1 overflow-y-auto scrollbar-hide w-full px-1.5">
+        {NAV_ICONS.map(item => {
           const isActive = item.label === 'Search AI' && isSearchAI
           return (
             <button
               key={item.label}
               title={item.label}
               onClick={() => item.path && navigate(item.path)}
-              className={`flex items-center justify-center w-7 h-7 rounded-sm transition-all duration-150 overflow-hidden ${
-                isActive && !item.activeBuiltIn ? 'bg-l1-active' : ''
-              } ${item.path ? 'cursor-pointer' : 'cursor-default'}`}
+              style={{ width: 28, height: 28, borderRadius: 4 }}
+              className={`flex items-center justify-center overflow-hidden flex-shrink-0 transition-colors ${
+                item.path ? 'cursor-pointer hover:bg-black/5' : 'cursor-default'
+              } ${isActive ? 'bg-black/5' : ''}`}
             >
-              <img src={item.src} alt={item.label} className="w-7 h-7 block flex-shrink-0" />
+              <img
+                src={`${BASE}assets/${item.src}`}
+                alt={item.label}
+                className="w-7 h-7 block flex-shrink-0"
+              />
             </button>
           )
         })}
 
-        <div className="w-5 h-px bg-border-primary my-1 flex-shrink-0" />
+        {/* Rail divider */}
+        <div style={{ width: 20, height: 1, background: '#eaeaea', margin: '4px auto', flexShrink: 0 }} />
 
+        {/* Settings icon */}
         <button
           title="Settings"
-          className="flex items-center justify-center w-7 h-7 rounded-sm cursor-default overflow-hidden"
+          style={{ width: 28, height: 28, borderRadius: 4 }}
+          className="flex items-center justify-center overflow-hidden flex-shrink-0 cursor-default"
         >
-          <img src={`${import.meta.env.BASE_URL}assets/Component 75.svg`} alt="Settings" className="w-7 h-7 block flex-shrink-0" />
+          <img src={`${BASE}assets/Component 75.svg`} alt="Settings" className="w-7 h-7 block flex-shrink-0" />
         </button>
       </div>
     </div>

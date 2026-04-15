@@ -1,5 +1,15 @@
 export type RecStatus = 'pending' | 'accepted' | 'in_progress' | 'completed' | 'rejected'
-export type RecCategory = 'Website content' | 'Website improvement' | 'Reviews' | 'Social' | 'FAQ'
+export type RecCategory =
+  | 'Website content'
+  | 'Website improvement'
+  | 'Reviews'
+  | 'Social'
+  | 'FAQ'
+  | 'Content'
+  | 'Local SEO'
+  | 'Conversion'
+  | 'Trust & Reputation'
+  | 'Technical SEO'
 export type LLMPlatform = 'ChatGPT' | 'Gemini' | 'Perplexity' | 'Claude'
 export type AssignChoice = 'self' | 'team' | 'remind'
 export type ViewMode = 'list' | 'kanban'
@@ -54,6 +64,11 @@ export interface Recommendation {
   category: RecCategory
   impactLabel: string
   effort: 'Quick win' | 'Medium' | 'Bigger lift'
+  tags?: string[]
+  locations?: number
+  themeId: string
+  createdAt: string
+  locationNames?: string[]
   status: RecStatus
   assignedTo: string | null
   assignChoice: AssignChoice | null
@@ -70,6 +85,12 @@ export interface Recommendation {
   }
   generatedAsset: GeneratedAsset | null
   checklist: ChecklistStep[]
+  targetPages?: string[]
+  shortAction?: string
+  expectedImpact?: string
+  keyInsights?: string[]
+  swotDrivers?: string[]
+  competitorsInsight?: string[]
 }
 
 export interface BusinessMetrics {
