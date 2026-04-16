@@ -1,36 +1,13 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAppStore } from '../../store/useAppStore'
-import ScoreRing from '../dashboard/ScoreRing'
 import { nsaThemesConfig } from '../../data/nsaThemesConfig'
 import { getLocationsForRec } from '../../data/locationsData'
-import type { RecCategory } from '../../types'
+import type { ChecklistStep } from '../../types'
 
 const BASE = import.meta.env.BASE_URL
 
-// ── Category → affected metric (mirrors RecommendationCard) ──────────────────
-const CATEGORY_METRIC: Partial<Record<RecCategory, string>> = {
-  'Content':             'Citation share',
-  'Website content':     'Citation share',
-  'FAQ':                 'Citation share',
-  'Social':              'Citation share',
-  'Local SEO':           'Visibility',
-  'Technical SEO':       'Visibility',
-  'Website improvement': 'Visibility',
-  'Conversion':          'Visibility',
-  'Trust & Reputation':  'Sentiment',
-  'Reviews':             'Sentiment',
-}
-
-function buildImpactMessage(rec: { category: RecCategory; themeId: string; shortAction?: string }): string {
-  const metric     = CATEGORY_METRIC[rec.category] ?? 'Search AI score'
-  const themeLabel = nsaThemesConfig[rec.themeId]?.label
-  const action     = rec.shortAction ?? 'Completing this'
-  return themeLabel
-    ? `${action} could move your ${metric} for ${themeLabel}`
-    : `${action} could improve your ${metric}`
-}
 
 // ── Reusable accordion (controlled) ──────────────────────────────────────────
 function Accordion({
@@ -149,6 +126,450 @@ function PlatformIcon({ platform }: { platform: string }) {
   )
 }
 
+// ── Platform colors for citation badges ───────────────────────────────────────
+const LLM_PLATFORM_COLORS: Record<string, { bg: string; text: string }> = {
+  ChatGPT:    { bg: '#10a37f', text: '#fff' },
+  Gemini:     { bg: '#4285F4', text: '#fff' },
+  Perplexity: { bg: '#6B21A8', text: '#fff' },
+  Claude:     { bg: '#C77B3A', text: '#fff' },
+}
+
+// ── Ring chart + competitor list layout ───────────────────────────────────────
+const RING_COLORS = ['#6366f1', '#3b82f6', '#ec4899', '#f59e0b', '#14b8a6']
+const YOU_COLOR   = '#0f7195'
+
+function MultiRingChart({
+  competitors,
+  youCitations,
+}: {
+  competitors: { name: string; totalCitations: number; citationRank: number }[]
+  youCitations: number
+}) {
+  const arcsRef = useRef<SVGGElement>(null)
+
+  // Sort ascending so innermost = lowest citations, outermost = highest
+  const allEntries = [
+    ...competitors.map(c => ({
+      name: c.name,
+      citations: c.totalCitations,
+      color: RING_COLORS[(c.citationRank - 1) % RING_COLORS.length],
+      isYou: false,
+    })),
+    { name: 'You', citations: youCitations, color: YOU_COLOR, isYou: true },
+  ].sort((a, b) => a.citations - b.citations)
+
+  const maxCitations = Math.max(...allEntries.map(e => e.citations), 1)
+  const strokeWidth  = 10
+  const ringGap      = 6
+  const baseRadius   = 28
+  const totalRings   = allEntries.length
+  const outerRadius  = baseRadius + (totalRings - 1) * (strokeWidth + ringGap)
+  const ringAreaSize = (outerRadius + strokeWidth) * 2 + 4
+  const leftPad      = 108   // room for name labels to the left of rings
+  const rightPad     = 32    // room for count labels to the right of arc endpoints
+  const svgWidth     = leftPad + ringAreaSize + rightPad
+  const svgHeight    = ringAreaSize
+  const cx           = leftPad + ringAreaSize / 2   // horizontal ring centre
+  const cy           = ringAreaSize / 2             // vertical ring centre
+
+  useEffect(() => {
+    const el = arcsRef.current
+    if (!el) return
+    const circles = el.querySelectorAll<SVGCircleElement>('circle[data-target]')
+    circles.forEach(c => {
+      const target = parseFloat(c.dataset.target ?? '0')
+      c.style.strokeDashoffset = c.dataset.full ?? '0'
+      requestAnimationFrame(() => {
+        c.style.transition = 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)'
+        c.style.strokeDashoffset = String(target)
+      })
+    })
+  }, [])
+
+  return (
+    <div className="flex flex-col items-center flex-shrink-0">
+      <svg
+        width={svgWidth}
+        height={svgHeight}
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        overflow="visible"
+      >
+        {/* Rotated arcs — rotation lives here, not on the outer SVG */}
+        <g ref={arcsRef} transform={`rotate(-90, ${cx}, ${cy})`}>
+          {allEntries.map((entry, i) => {
+            const radius     = baseRadius + i * (strokeWidth + ringGap)
+            const circ       = 2 * Math.PI * radius
+            const fill       = (entry.citations / maxCitations) * circ
+            const dashOffset = circ - fill
+            return (
+              <g key={entry.name}>
+                <circle
+                  cx={cx} cy={cy} r={radius}
+                  fill="none" stroke="#eaeaea" strokeWidth={strokeWidth}
+                />
+                <circle
+                  cx={cx} cy={cy} r={radius}
+                  fill="none" stroke={entry.color} strokeWidth={strokeWidth}
+                  strokeLinecap="round"
+                  strokeDasharray={circ}
+                  strokeDashoffset={circ}
+                  data-target={dashOffset}
+                  data-full={circ}
+                />
+              </g>
+            )
+          })}
+        </g>
+
+        {/* Name labels — unrotated, positioned at 9-o'clock of each ring */}
+        {allEntries.map((entry, i) => {
+          const radius = baseRadius + i * (strokeWidth + ringGap)
+          const lx = cx - radius - strokeWidth / 2 - 5
+          return (
+            <text
+              key={`lbl-${entry.name}`}
+              x={lx}
+              y={cy}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fontSize="10"
+              fontFamily="Roboto, sans-serif"
+              fill={entry.isYou ? YOU_COLOR : '#555555'}
+              fontWeight={entry.isYou ? '600' : '400'}
+            >
+              {entry.isYou ? 'You' : entry.name}
+            </text>
+          )
+        })}
+
+        {/* Count labels — at the arc endpoint (unrotated calculation) */}
+        {allEntries.map((entry, i) => {
+          const fillFraction = entry.citations / maxCitations
+          if (fillFraction < 0.05) return null   // skip near-zero arcs
+          const radius   = baseRadius + i * (strokeWidth + ringGap)
+          // Arc starts at 12-o'clock (-π/2) and sweeps clockwise by fillFraction * 2π
+          const endAngle = fillFraction * 2 * Math.PI - Math.PI / 2
+          const ex = cx + radius * Math.cos(endAngle)
+          const ey = cy + radius * Math.sin(endAngle)
+          const label = entry.citations >= 1000
+            ? `${(entry.citations / 1000).toFixed(1)}k`
+            : String(entry.citations)
+          return (
+            <text
+              key={`cnt-${entry.name}`}
+              x={ex + 7}
+              y={ey}
+              textAnchor="start"
+              dominantBaseline="middle"
+              fontSize="10"
+              fontFamily="Roboto, sans-serif"
+              fill={entry.isYou ? YOU_COLOR : '#888888'}
+              fontWeight={entry.isYou ? '600' : '400'}
+            >
+              {label}
+            </text>
+          )
+        })}
+      </svg>
+      <p className="text-[11px] text-[#888] leading-[16px] mt-1">Citation share</p>
+    </div>
+  )
+}
+
+function CompetitorIntelligenceLayout({
+  competitors,
+  youCitations,
+  youName,
+  llmSummary,
+  expandedCompetitor,
+  setExpandedCompetitor,
+}: {
+  competitors: { name: string; pageUrl?: string; totalCitations: number; citationRank: number; citedBy: string[]; llmSnippet: string; platformSnippets?: { platform: string; prompt: string; snippet: string }[] }[]
+  youCitations: number
+  youName: string
+  llmSummary: string
+  expandedCompetitor: number | null
+  setExpandedCompetitor: (i: number | null) => void
+}) {
+  const sorted = [...competitors].sort((a, b) => a.citationRank - b.citationRank)
+
+  return (
+    <div className="flex gap-6 items-start">
+      {/* Left: Ring chart */}
+      <MultiRingChart competitors={sorted} youCitations={youCitations} />
+
+      {/* Right: competitor list — internal scroll so ring stays anchored */}
+      <div className="flex-1 min-w-0 flex flex-col max-h-[360px] overflow-y-auto pr-1">
+        {sorted.map((comp, i) => {
+          const color = RING_COLORS[i % RING_COLORS.length]
+          const isExpanded = expandedCompetitor === i
+          return (
+            <div key={comp.name} className="border-b border-[#eaeaea] last:border-b-0 py-3">
+              {/* Row: avatar + meta */}
+              <div className="flex gap-3 items-start">
+                {/* Avatar */}
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-medium text-white flex-shrink-0 mt-0.5"
+                  style={{ backgroundColor: color }}
+                >
+                  {comp.name.charAt(0)}
+                </div>
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[13px] font-normal text-[#212121] leading-[20px]">{comp.name}</span>
+                    <span className="text-[#ccc]">·</span>
+                    <span className="text-[12px] text-[#555] leading-[18px]">Cited {comp.totalCitations} times</span>
+                    <span className="text-[#ccc]">·</span>
+                    <span className="text-[12px] text-[#555] leading-[18px]">Citation rank #{comp.citationRank}</span>
+                  </div>
+                  {/* Platform badges */}
+                  {comp.citedBy.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1 flex-wrap">
+                      {comp.citedBy.map(p => {
+                        const clr = LLM_PLATFORM_COLORS[p]
+                        return (
+                          <span
+                            key={p}
+                            className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                            style={clr ? { backgroundColor: clr.bg, color: clr.text } : { backgroundColor: '#f3f4f6', color: '#555' }}
+                          >
+                            {p}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {/* Snippet */}
+                  <p className="text-[12px] text-[#555] leading-[18px] mt-1 line-clamp-2">
+                    {comp.llmSnippet}
+                  </p>
+                  {/* View citations toggle */}
+                  <button
+                    onClick={() => setExpandedCompetitor(isExpanded ? null : i)}
+                    className="mt-1 text-[12px] text-[#1976d2] hover:underline flex-shrink-0"
+                  >
+                    {isExpanded ? 'Hide citations ↑' : 'View citations ↓'}
+                  </button>
+
+                  {/* Expanded: page link + per-platform snippets + your position */}
+                  {isExpanded && (
+                    <div className="mt-3 flex flex-col gap-3">
+                      {/* External page link if available */}
+                      {comp.pageUrl && (
+                        <a
+                          href={comp.pageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-[12px] text-[#1976d2] hover:underline self-start"
+                        >
+                          View their page
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                            <polyline points="15 3 21 3 21 9"/>
+                            <line x1="10" y1="14" x2="21" y2="3"/>
+                          </svg>
+                        </a>
+                      )}
+
+                      {/* Competitor AI snippets */}
+                      {comp.platformSnippets && comp.platformSnippets.length > 0 && (
+                        <div className="flex flex-col gap-2">
+                          <p className="text-[11px] text-[#888] uppercase tracking-[0.4px] font-medium leading-[14px]">
+                            What AI says about them
+                          </p>
+                          {comp.platformSnippets.map((ps, j) => {
+                            const pclr = LLM_PLATFORM_COLORS[ps.platform]
+                            return (
+                              <div key={j} className="bg-[#fafafa] border border-[#eaeaea] rounded-lg px-3 py-2.5">
+                                <div className="flex items-center gap-1.5 mb-1">
+                                  <span
+                                    className="text-[10px] px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                                    style={pclr ? { backgroundColor: pclr.bg, color: pclr.text } : { backgroundColor: '#f3f4f6', color: '#555' }}
+                                  >
+                                    {ps.platform}
+                                  </span>
+                                  <span className="text-[11px] text-[#888] leading-[16px] truncate italic">"{ps.prompt}"</span>
+                                </div>
+                                <p className="text-[12px] text-[#212121] leading-[18px]">"{ps.snippet}"</p>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+
+                      {/* Your position */}
+                      {llmSummary && (
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-[11px] text-[#888] uppercase tracking-[0.4px] font-medium leading-[14px]">
+                            Where you appear
+                          </p>
+                          <div className="bg-[#f0f9ff] border border-[#bae6fd] rounded-lg px-3 py-2.5">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <div
+                                className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                                style={{ backgroundColor: YOU_COLOR }}
+                              >
+                                {youName.charAt(0)}
+                              </div>
+                              <span className="text-[11px] font-medium leading-[16px]" style={{ color: YOU_COLOR }}>{youName}</span>
+                            </div>
+                            <p className="text-[12px] text-[#555] leading-[18px]">{llmSummary}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* "You" row */}
+        <div className="pt-3 pb-1">
+          <div className="flex gap-3 items-start">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold text-white flex-shrink-0 mt-0.5"
+              style={{ backgroundColor: YOU_COLOR }}
+            >
+              {youName.charAt(0)}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[13px] font-medium leading-[20px]" style={{ color: YOU_COLOR }}>{youName}</span>
+                <span className="text-[#ccc]">·</span>
+                <span className="text-[12px] text-[#555] leading-[18px]">Cited {youCitations} times</span>
+              </div>
+              <p className="text-[12px] text-[#555] leading-[18px] mt-1">{llmSummary}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Rich content box rendered below each step's description ──────────────────
+function StepRichBox({ step }: { step: ChecklistStep }) {
+  const [copied, setCopied] = useState<string | null>(null)
+
+  function copyToClipboard(value: string, key: string) {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(key)
+      setTimeout(() => setCopied(null), 1500)
+    })
+  }
+
+  if (step.stepType === 'link' && step.links && step.links.length > 0) {
+    return (
+      <div className="mt-2 border border-[#eaeaea] rounded-lg overflow-hidden">
+        {step.links.map((link, i) => (
+          <a
+            key={i}
+            href={link.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-[#eaeaea] last:border-b-0 hover:bg-[#fafafa] transition-colors group"
+          >
+            <span className="text-[13px] text-[#1976d2] leading-[20px] group-hover:underline">
+              {link.label}
+            </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1976d2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 opacity-60 group-hover:opacity-100">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+        ))}
+      </div>
+    )
+  }
+
+  if (step.stepType === 'nap' && step.napData) {
+    const { name, address, phone } = step.napData
+    const rows: { key: string; label: string; value: string }[] = [
+      { key: 'name',    label: 'Business name', value: name },
+      { key: 'address', label: 'Address',        value: address },
+      { key: 'phone',   label: 'Phone',          value: phone },
+    ]
+    return (
+      <div className="mt-2 border border-[#eaeaea] rounded-lg overflow-hidden">
+        {rows.map(row => (
+          <div key={row.key} className="flex items-center gap-3 px-3 py-2.5 border-b border-[#eaeaea] last:border-b-0 bg-white">
+            <span className="text-[11px] text-[#888] leading-[16px] w-24 flex-shrink-0 uppercase tracking-[0.3px]">
+              {row.label}
+            </span>
+            <span className="text-[13px] text-[#212121] leading-[20px] flex-1 min-w-0">
+              {row.value}
+            </span>
+            <button
+              onClick={() => copyToClipboard(row.value, row.key)}
+              title="Copy"
+              className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded hover:bg-[#f0f0f0] transition-colors"
+            >
+              {copied === row.key ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#377e2c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              )}
+            </button>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (step.stepType === 'keyword' && step.keywords && step.keywords.length > 0) {
+    return (
+      <div className="mt-2 border border-[#eaeaea] rounded-lg px-3 py-2.5">
+        <div className="flex flex-wrap gap-1.5">
+          {step.keywords.map((kw, i) => (
+            <span
+              key={i}
+              className="inline-flex items-center gap-1.5 bg-[#f5f0ff] text-[#6834b7] border border-[#e4d9f9] rounded px-2 py-1 text-[12px] leading-[18px] cursor-pointer hover:bg-[#ede5ff] transition-colors"
+              onClick={() => copyToClipboard(kw, `kw-${i}`)}
+              title="Click to copy"
+            >
+              {kw}
+              {copied === `kw-${i}` ? (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#377e2c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              ) : (
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6834b7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-50">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                </svg>
+              )}
+            </span>
+          ))}
+        </div>
+        <p className="text-[11px] text-[#888] mt-2 leading-[16px]">Click any phrase to copy it</p>
+      </div>
+    )
+  }
+
+  if (step.targetPage && (step.stepType === 'task' || !step.stepType)) {
+    return (
+      <div className="mt-2 border border-[#eaeaea] rounded-lg px-3 py-2.5 flex items-center gap-2">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <span className="text-[12px] text-[#555] leading-[18px] truncate">{step.targetPage}</span>
+      </div>
+    )
+  }
+
+  return null
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function TaskDetailPage() {
   const { id }     = useParams<{ id: string }>()
@@ -190,6 +611,8 @@ export default function TaskDetailPage() {
     day: 'numeric', month: 'short', year: 'numeric',
   })
 
+  const [expandedCompetitor, setExpandedCompetitor] = useState<number | null>(null)
+
   // ── Accordion group (only one open at a time) ─────────────────────────────
   const [openAccordion, setOpenAccordion] = useState<string>('basic')
   const toggleAccordion = (key: string) =>
@@ -209,13 +632,13 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden pl-6">
+    <div className="flex flex-1 min-h-0 overflow-hidden pl-6 pb-5">
 
       {/* ══════════════════════════════════════════════════════════
           LEFT CARD
       ══════════════════════════════════════════════════════════ */}
       <div
-        className="flex flex-col flex-shrink-0 border border-[#eaeaea] bg-white self-start max-h-full overflow-hidden rounded-[8px]"
+        className="flex flex-col flex-shrink-0 border border-[#eaeaea] bg-white overflow-hidden rounded-[8px]"
         style={{ width: '30vw' }}
       >
         {/* ── Main container — unified wrapper for all card content ── */}
@@ -223,6 +646,11 @@ export default function TaskDetailPage() {
 
         {/* Chips */}
         <div className="flex items-center gap-2 flex-wrap px-5 pt-5 pb-3">
+          {(rec.status === 'accepted' || rec.status === 'in_progress') && (
+            <span className="inline-flex items-center px-2 py-1 rounded text-[12px] leading-[18px] tracking-[-0.24px] font-normal" style={{ backgroundColor: '#fef3d6', color: '#c69204' }}>
+              Accepted
+            </span>
+          )}
           <span className="inline-flex items-center px-2 py-1 rounded text-[12px] leading-[18px] tracking-[-0.24px] bg-white border border-[#cccccc] text-[#212121] font-normal">
             {rec.category}
           </span>
@@ -279,20 +707,6 @@ export default function TaskDetailPage() {
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
           </button>
-          {acceptedDate && (
-            <span className="ml-auto text-[11px] text-[#888] whitespace-nowrap">Accepted {acceptedDate}</span>
-          )}
-        </div>
-
-        {/* Score nudge */}
-        <div className="mx-5 mb-4 flex items-center gap-2 bg-[#f9f7fd] px-2 py-2 rounded">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#303030" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-            <polyline points="17 6 23 6 23 12" />
-          </svg>
-          <span className="text-[12px] text-[#555] leading-[18px] tracking-[-0.24px]">
-            {buildImpactMessage(rec)}
-          </span>
         </div>
 
         {/* ── ACCORDION: Basic details ─────────────────────────── */}
@@ -323,6 +737,15 @@ export default function TaskDetailPage() {
               </div>
             </InfoRow>
             <InfoRow label="Created on">{createdDate}</InfoRow>
+            {(rec.status === 'accepted' || rec.status === 'in_progress' || rec.status === 'completed') && acceptedDate && (
+              <InfoRow label="Accepted on">{acceptedDate}</InfoRow>
+            )}
+            {(rec.status === 'accepted' || rec.status === 'in_progress' || rec.status === 'completed') && rec.acceptedBy && (
+              <InfoRow label="Accepted by">{rec.acceptedBy}</InfoRow>
+            )}
+            {(rec.status === 'accepted' || rec.status === 'in_progress' || rec.status === 'completed') && (
+              <InfoRow label="Assigned to">{rec.assignedTo ?? '-'}</InfoRow>
+            )}
           </div>
         </Accordion>
 
@@ -388,11 +811,6 @@ export default function TaskDetailPage() {
       ══════════════════════════════════════════════════════════ */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
-        {/* Top info banner */}
-        <InfoBanner
-          text="Need help with implementation? Opt in for managed services and our team will make the updates for you on your website"
-          cta="Contact support"
-        />
 
         {/* Tab bar */}
         <div className="flex border-b border-[#eaeaea] mx-6 flex-shrink-0 bg-white">
@@ -407,12 +825,11 @@ export default function TaskDetailPage() {
               }`}
             >
               {tab === 'Intelligence' && (
-                <svg
-                  width="14" height="14" viewBox="0 0 24 24"
-                  fill={activeTab === i ? '#1976d2' : '#888'}
-                  className="flex-shrink-0"
-                >
-                  <path d="M12 3 L13.8 8.5 L20 8.5 L14.9 12 L16.7 17.5 L12 14 L7.3 17.5 L9.1 12 L4 8.5 L10.2 8.5 Z" />
+                <svg width="21" height="20" viewBox="0 0 21 20" fill="none" className="flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.8995 2.38574C17.871 2.36333 17.8538 2.33493 17.8479 2.30054C17.8425 2.26979 17.8492 2.24035 17.868 2.2122C18.0002 1.98555 18.0971 1.80384 18.1586 1.66706C18.2222 1.53188 18.2459 1.41168 18.2299 1.30647C18.2175 1.20082 18.1641 1.08444 18.0698 0.957318C17.9755 0.830197 17.8388 0.664795 17.6598 0.461114C17.6064 0.399237 17.6022 0.339706 17.6472 0.28252C17.6697 0.253928 17.6973 0.237644 17.7301 0.23367C17.7629 0.229696 17.7941 0.236071 17.8237 0.252796C18.0558 0.38908 18.2431 0.490148 18.3856 0.555999C18.5297 0.619808 18.6546 0.645309 18.7602 0.632503C18.8694 0.619256 18.9841 0.56563 19.1042 0.471628C19.2259 0.375583 19.3819 0.233806 19.5723 0.046297C19.6302 -0.0106125 19.6897 -0.015056 19.7508 0.0329664C19.8118 0.0809887 19.8197 0.140078 19.7743 0.210235C19.6401 0.435279 19.5412 0.615391 19.4776 0.750571C19.4161 0.887353 19.3934 1.00835 19.4094 1.11355C19.4275 1.22036 19.4837 1.33733 19.578 1.46445C19.6739 1.58953 19.8104 1.75311 19.9874 1.95519C20.0408 2.01707 20.045 2.0766 20 2.13378C19.955 2.19097 19.8921 2.19768 19.8112 2.1539C19.578 2.0233 19.3903 1.9269 19.2482 1.86469C19.1061 1.80248 18.9813 1.77698 18.8736 1.78819C18.768 1.80099 18.6552 1.8544 18.5351 1.9484C18.417 2.04401 18.2644 2.18352 18.0773 2.36694C18.0198 2.4275 17.9605 2.43376 17.8995 2.38574Z" fill={activeTab === i ? '#1976d2' : '#6834B7'}/>
+                  <path d="M15.698 7.63491C15.6248 7.63491 15.562 7.61129 15.5097 7.56405C15.4627 7.52206 15.4365 7.46695 15.4313 7.39872C15.3581 6.87385 15.2849 6.46445 15.2117 6.17052C15.1437 5.87659 15.0313 5.65615 14.8745 5.50918C14.7229 5.35697 14.4928 5.23887 14.1843 5.15489C13.8759 5.07091 13.4524 4.97906 12.9138 4.87934C12.7518 4.84784 12.6707 4.75862 12.6707 4.61165C12.6707 4.53817 12.6942 4.47781 12.7413 4.43057C12.7884 4.38333 12.8459 4.35447 12.9138 4.34397C13.4524 4.27049 13.8759 4.19701 14.1843 4.12352C14.4928 4.04479 14.7229 3.92932 14.8745 3.77711C15.0313 3.61965 15.1464 3.39133 15.2196 3.09215C15.2928 2.78773 15.3633 2.36783 15.4313 1.83246C15.4522 1.66975 15.5411 1.5884 15.698 1.5884C15.8548 1.5884 15.9411 1.67238 15.9568 1.84034C16.0247 2.36521 16.0927 2.77461 16.1607 3.06853C16.2339 3.36246 16.3489 3.58291 16.5057 3.72987C16.6678 3.87683 16.9031 3.99231 17.2116 4.07628C17.5201 4.15501 17.9409 4.24424 18.4742 4.34397C18.6363 4.37546 18.7174 4.46469 18.7174 4.61165C18.7174 4.75862 18.6259 4.84784 18.4429 4.87934C17.9096 4.96332 17.4913 5.04467 17.1881 5.1234C16.8848 5.20213 16.6548 5.3176 16.4979 5.46982C16.3463 5.62203 16.2339 5.84772 16.1607 6.1469C16.0927 6.44608 16.0247 6.8581 15.9568 7.38297C15.9411 7.55093 15.8548 7.63491 15.698 7.63491Z" fill={activeTab === i ? '#1976d2' : '#6834B7'}/>
+                  <path fillRule="evenodd" clipRule="evenodd" d="M5.15055 14.8252L5.72433 13.0763H8.71339L9.28059 14.8252H11.1035L8.00455 6.53094H6.4152L3.33333 14.8252H5.15055ZM6.16354 11.7376L7.22747 8.4948L8.27921 11.7376H6.16354Z" fill={activeTab === i ? '#1976d2' : '#6834B7'}/>
+                  <path d="M13.6898 14.8252V6.53094H11.9865V14.8252H13.6898Z" fill={activeTab === i ? '#1976d2' : '#6834B7'}/>
                 </svg>
               )}
               {tab}
@@ -435,7 +852,7 @@ export default function TaskDetailPage() {
                 <ul className="flex flex-col gap-2.5">
                   {rec.whyItWorks.map((pt, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
-                      <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#555] flex-shrink-0" />
+                      <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
                       {pt}
                     </li>
                   ))}
@@ -445,15 +862,10 @@ export default function TaskDetailPage() {
               {/* Section B: What to do next */}
               <div className="my-5 border border-[#eaeaea] rounded-lg">
                 <div className="flex items-start justify-between mb-1 py-4 px-5">
-                  <div>
-                    <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px]">
-                      What to do next
-                    </p>
-                    <p className="text-[13px] text-[#888] leading-[20px] mt-0.5">
-                      Step by step guide on what you need to do next
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0 mt-1">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px]">
+                    What to do next
+                  </p>
+                  <div className="flex items-center gap-1 flex-shrink-0">
                     <button
                       title="Export"
                       className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors"
@@ -474,26 +886,27 @@ export default function TaskDetailPage() {
                 </div>
 
                 {/* Stepper */}
-                <div className="mt-4">
+                <div className="mt-2 pb-2">
                   {rec.checklist.map((step, idx) => {
                     const isLast = idx === rec.checklist.length - 1
                     return (
-                      <div key={step.id} className="flex gap-3 items-stretch mb-5 px-5">
-                        {/* Left: number + connector line */}
+                      <div key={step.id} className="flex gap-3 items-stretch px-5">
+                        {/* Left: number circle + connector line */}
                         <div className="flex flex-col items-center flex-shrink-0">
-                          <div className="w-5 h-5 border border-[#eaeaea] rounded-full flex items-center justify-center text-[11px] text-[#555] leading-none flex-shrink-0 bg-white">
+                          <div className="w-5 h-5 border border-[#eaeaea] rounded-full flex items-center justify-center text-[11px] text-[#555] leading-none flex-shrink-0 bg-white mt-0.5">
                             {idx + 1}
                           </div>
                           {!isLast && <div className="w-px flex-1 bg-[#eaeaea] mt-1" />}
                         </div>
-                        {/* Right: content */}
-                        <div className={`flex flex-col gap-1 flex-1 min-w-0 ${!isLast ? 'pb-5' : ''}`}>
+                        {/* Right: label, description, rich box */}
+                        <div className={`flex flex-col flex-1 min-w-0 pt-0.5 ${!isLast ? 'pb-5' : 'pb-1'}`}>
                           <p className="text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
                             {step.label}
                           </p>
-                          <p className="text-[13px] text-[#555] leading-[20px]">{step.description}</p>
-                          {isLast && (
-                            <div className="mt-2">
+                          <p className="text-[13px] text-[#555] leading-[20px] mt-0.5">{step.description}</p>
+                          <StepRichBox step={step} />
+                          {isLast && rec.status !== 'pending' && (
+                            <div className="mt-3">
                               <button
                                 onClick={() => completeRec(rec.id)}
                                 disabled={rec.status === 'completed'}
@@ -512,23 +925,20 @@ export default function TaskDetailPage() {
                     )
                   })}
                 </div>
-              </div>
 
-              {/* Bottom implement banner */}
-              <div className="flex items-center justify-between gap-3 px-4 py-3 bg-[#f5f0ff] rounded-lg border border-[#e4d9f9]">
-                <div className="flex items-center gap-2 min-w-0">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                  <span className="text-[13px] text-[#555] leading-[20px] truncate">
-                    Need help with implementation? Opt in for managed services and our team will make the updates for you on your website
-                  </span>
+                {/* Implement for me banner — inside the card, below the stepper */}
+                <div className="flex items-center justify-between gap-3 mx-5 mb-4 mt-1 px-4 py-3 bg-[#f5f0ff] rounded-lg border border-[#e4d9f9]">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <span className="text-[13px] text-[#555] leading-[20px] truncate">
+                      Need help with implementation? Opt in for managed services and our team will make the updates for you on your website
+                    </span>
+                  </div>
                 </div>
-                <button className="text-[13px] text-[#1976d2] whitespace-nowrap hover:underline flex-shrink-0 font-medium">
-                  Implement for me
-                </button>
               </div>
             </div>
           )}
@@ -598,31 +1008,58 @@ export default function TaskDetailPage() {
 
           {/* ── TAB 2: Intelligence ─────────────────────────────── */}
           {activeTab === 2 && (
-            <div className="px-6 py-5 flex flex-col gap-7">
+            <div className="px-6 py-5 flex flex-col gap-5">
 
-              {/* Score rings */}
-              <div>
-                <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px] mb-4">
-                  Current scores
-                </p>
-                <div className="flex items-start gap-8 flex-wrap">
-                  <ScoreRing score={metrics.visibility}    size={96} strokeWidth={8} label="Visibility"      />
-                  <ScoreRing score={metrics.citationShare} size={96} strokeWidth={8} label="Citation share"  />
-                  <ScoreRing score={metrics.sentiment}     size={96} strokeWidth={8} label="Sentiment"       />
-                  <ScoreRing score={metrics.searchAiScore} size={96} strokeWidth={8} label="Search AI Score" />
+              {/* ── A: Competitive Intelligence Card — hidden when no competitors ── */}
+              {rec.competitors.length > 0 && (
+                <div className="p-5 border border-[#eaeaea] rounded-lg">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-1">
+                    How are your competitors getting cited for{' '}
+                    <span className="font-medium">{themeConfig?.label ?? rec.category}</span>
+                  </p>
+                  <p className="text-[12px] text-[#555] leading-[18px] mb-4">
+                    {themeConfig?.prompts[0]
+                      ? `When someone asks an AI "${themeConfig.prompts[0]}" — these businesses are showing up instead of you:`
+                      : 'These businesses are being cited by AI platforms more often than you for this topic:'}
+                  </p>
+                  <CompetitorIntelligenceLayout
+                    competitors={rec.competitors}
+                    youCitations={rec.youCitations ?? metrics.youCitations}
+                    youName="Raine & Horne Dubbo"
+                    llmSummary={rec.llmCoverageGap.summary}
+                    expandedCompetitor={expandedCompetitor}
+                    setExpandedCompetitor={setExpandedCompetitor}
+                  />
                 </div>
-              </div>
+              )}
 
-              {/* Key insights */}
+              {/* ── A2: What competitors are doing better ────────── */}
+              {rec.competitorsInsight && rec.competitorsInsight.length > 0 && (
+                <div className="p-5 border border-[#eaeaea] rounded-lg">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
+                    What competitors are doing better
+                  </p>
+                  <ul className="flex flex-col gap-2.5">
+                    {rec.competitorsInsight.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
+                        <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* ── B: Key Insights box ─────────────────────────── */}
               {rec.keyInsights && rec.keyInsights.length > 0 && (
-                <div>
-                  <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
+                <div className="p-5 border border-[#eaeaea] rounded-lg">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
                     Key insights
                   </p>
                   <ul className="flex flex-col gap-2.5">
                     {rec.keyInsights.map((insight, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#555] leading-[22px] tracking-[-0.28px]">
-                        <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#1976d2] flex-shrink-0" />
+                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
+                        <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
                         {insight}
                       </li>
                     ))}
@@ -630,71 +1067,20 @@ export default function TaskDetailPage() {
                 </div>
               )}
 
-              {/* SWOT drivers */}
+              {/* ── C: What's driving this box ──────────────────── */}
               {rec.swotDrivers && rec.swotDrivers.length > 0 && (
-                <div>
-                  <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
+                <div className="p-5 border border-[#eaeaea] rounded-lg">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
                     What's driving this
                   </p>
                   <ul className="flex flex-col gap-2.5">
                     {rec.swotDrivers.map((driver, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#555] leading-[22px] tracking-[-0.28px]">
-                        <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#377e2c] flex-shrink-0" />
+                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
+                        <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
                         {driver}
                       </li>
                     ))}
                   </ul>
-                </div>
-              )}
-
-              {/* Competitor insights */}
-              {rec.competitorsInsight && rec.competitorsInsight.length > 0 && (
-                <div>
-                  <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
-                    Competitor insights
-                  </p>
-                  <ul className="flex flex-col gap-2.5">
-                    {rec.competitorsInsight.map((ci, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#555] leading-[22px] tracking-[-0.28px]">
-                        <span className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[#c65c04] flex-shrink-0" />
-                        {ci}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Related prompts */}
-              {themeConfig && (
-                <div>
-                  <p className="text-[14px] font-medium text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
-                    Related prompts — {themeConfig.label}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {themeConfig.prompts.map((p, i) => (
-                      <div
-                        key={i}
-                        className="flex items-start gap-2 px-3 py-2.5 bg-[#f5f0ff] rounded-lg border border-[#e4d9f9]"
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#7c3aed" className="flex-shrink-0 mt-0.5" opacity="0.7">
-                          <path d="M12 3 L13.8 8.5 L20 8.5 L14.9 12 L16.7 17.5 L12 14 L7.3 17.5 L9.1 12 L4 8.5 L10.2 8.5 Z" />
-                        </svg>
-                        <span className="text-[13px] text-[#555] leading-[20px] italic">"{p}"</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* LLM coverage gap */}
-              {rec.llmCoverageGap.summary && (
-                <div className="bg-[#fafafa] border border-[#eaeaea] rounded-lg p-4">
-                  <p className="text-[13px] font-medium text-[#212121] leading-[20px] mb-1.5">
-                    LLM coverage gap
-                  </p>
-                  <p className="text-[13px] text-[#555] leading-[20px]">
-                    {rec.llmCoverageGap.summary}
-                  </p>
                 </div>
               )}
 

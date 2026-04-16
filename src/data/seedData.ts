@@ -1,4 +1,4 @@
-import type { BusinessMetrics, ChecklistStep, Competitor, Recommendation, SourceReference } from '../types'
+import type { BusinessMetrics, ChecklistStep, Competitor, CompetitorPlatformSnippet, LLMPlatform, Recommendation, SourceReference } from '../types'
 
 export const seedBusiness = {
   name: 'Raine & Horne Dubbo',
@@ -12,31 +12,45 @@ export const seedMetrics: BusinessMetrics = {
   citationShare: 62,
   rank: 3,
   sentiment: 71,
+  youCitations: 13,
 }
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-function makeChecklist(valueId: string, steps: string[]): ChecklistStep[] {
+type StepInput = Omit<ChecklistStep, 'id' | 'completed' | 'autoCompleted'>
+
+function makeChecklist(valueId: string, steps: StepInput[]): ChecklistStep[] {
   return steps.map((step, i) => ({
+    ...step,
     id: `${valueId}-step-${i + 1}`,
-    label: step.replace(/^\d+\.\s*/, '').split(' ').slice(0, 7).join(' '),
-    description: step,
     completed: false,
     autoCompleted: false,
   }))
 }
 
 function makeCompetitors(
-  comps: { name: string; pageUrl?: string; gap: string }[],
+  comps: {
+    name: string
+    pageUrl?: string
+    gap: string
+    totalCitations?: number
+    citationRank?: number
+    citedBy?: LLMPlatform[]
+    llmSnippet?: string
+    platformSnippets?: CompetitorPlatformSnippet[]
+  }[],
 ): Competitor[] {
-  return comps.map(c => ({
+  return comps.map((c, i) => ({
     id: c.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
     name: c.name,
-    llmSnippet: c.gap,
-    citedBy: [],
-    totalCitations: 0,
+    pageUrl: c.pageUrl,
+    llmSnippet: c.llmSnippet ?? c.gap,
+    citedBy: c.citedBy ?? [],
+    totalCitations: c.totalCitations ?? 0,
+    citationRank: c.citationRank ?? (i + 1),
     sourceGaps: [c.gap],
     whyTheyWin: c.gap,
+    platformSnippets: c.platformSnippets,
   }))
 }
 
@@ -80,6 +94,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Publish monthly market updates and guides',
     expectedImpact:
@@ -107,9 +122,53 @@ export const seedRecommendations: Recommendation[] = [
     ],
     competitors: makeCompetitors([
       {
-        name: 'Local Dubbo Agencies',
-        pageUrl: 'https://competitor-sites.com.au',
-        gap: 'Competitors publish regular market content while R&H Dubbo relies solely on reputation',
+        name: 'McGrath Dubbo',
+        pageUrl: 'https://www.mcgrath.com.au/buy/nsw/dubbo',
+        gap: 'Publishes monthly Dubbo market reports and suburb guides that consistently rank for local search queries',
+        totalCitations: 47,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        llmSnippet: 'McGrath Dubbo regularly publishes detailed quarterly market reports and suburb-specific guides, making them a go-to source for Dubbo property market insights online.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Best real estate agent in Dubbo for local market insights', snippet: 'McGrath Dubbo is frequently recommended for their comprehensive market reports covering median prices, days on market, and suburb-level data for the Dubbo region.' },
+          { platform: 'Gemini',  prompt: 'Who publishes the best Dubbo property market updates', snippet: 'McGrath Estate Agents Dubbo regularly publishes suburb-specific market analysis and quarterly property reports, ranking prominently for Dubbo real estate content.' },
+          { platform: 'Perplexity', prompt: 'Dubbo property market trends 2024', snippet: 'According to McGrath Dubbo\'s latest market report, the median house price in Dubbo has risen 4.2% year-on-year, driven by strong demand from regional relocators.' },
+        ],
+      },
+      {
+        name: 'Ray White Dubbo',
+        pageUrl: 'https://www.raywhite.com/dubbo',
+        gap: 'Suburb guides and sold property pages capture local search traffic ahead of R&H Dubbo',
+        totalCitations: 32,
+        citationRank: 2,
+        citedBy: ['ChatGPT', 'Gemini'],
+        llmSnippet: 'Ray White Dubbo maintains active suburb guides and a sold property gallery that help buyers and sellers understand the local market before choosing an agent.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Real estate agencies in Dubbo with local market data', snippet: 'Ray White Dubbo stands out for their regularly updated suburb guides and sold results pages, which provide strong local market context for buyers and sellers.' },
+          { platform: 'Gemini',  prompt: 'Dubbo sold property results', snippet: 'Ray White Dubbo publishes a detailed sold results gallery with suburb filters, helping sellers benchmark their property against recent local sales.' },
+        ],
+      },
+      {
+        name: 'PRD Nationwide Dubbo',
+        gap: 'Consistent blog content and market commentary positions PRD as a digital thought leader in Dubbo',
+        totalCitations: 19,
+        citationRank: 3,
+        citedBy: ['Perplexity'],
+        llmSnippet: 'PRD Nationwide Dubbo publishes regular market commentary and investor-focused reports that are frequently surfaced by AI search tools when people ask about Dubbo property trends.',
+        platformSnippets: [
+          { platform: 'Perplexity', prompt: 'Dubbo property investment outlook', snippet: 'PRD Nationwide\'s Dubbo office regularly releases investor-focused market reports covering rental yields, vacancy rates, and capital growth forecasts for the region.' },
+        ],
+      },
+      {
+        name: 'LJ Hooker Dubbo',
+        gap: 'FAQ pages on their website are indexed by Gemini and surface for common buyer and seller questions',
+        totalCitations: 11,
+        citationRank: 4,
+        citedBy: ['Gemini'],
+        llmSnippet: 'LJ Hooker Dubbo\'s website includes comprehensive FAQ sections for buyers and sellers that Gemini frequently cites when answering common Dubbo real estate questions.',
+        platformSnippets: [
+          { platform: 'Gemini', prompt: 'What to look for when buying a house in Dubbo', snippet: 'LJ Hooker Dubbo provides a helpful buyer\'s guide on their website covering property inspections, conveyancing, and what to look for in the Dubbo market.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -136,11 +195,27 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de016e9c10756b6b61329f', [
-      '1. Create a content calendar for monthly Dubbo market reports highlighting median prices, days on market, and inventory levels',
-      '2. Write comprehensive suburb profiles covering schools, amenities, lifestyle factors, and recent sales results',
-      '3. Add prominent \'Get Your Free Appraisal\' calls-to-action on every content page',
-      '4. Set up automated distribution to email subscribers and social media channels',
-      '5. Track enquiries from each piece of content to measure ROI',
+      {
+        label: 'Pick a publishing rhythm',
+        description: 'Decide how often you\'ll publish — once a month is a solid start. Block an hour in your calendar for it so it actually happens, rather than becoming a "we should do this" task.',
+        stepType: 'task',
+      },
+      {
+        label: 'Write your first Dubbo suburb guide',
+        description: 'Pick one suburb you know well — Glenfield Park, South Dubbo, wherever you sell most. Cover what it\'s like to live there, recent price trends, and who it\'s best for. 400–600 words is plenty.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/dubbo-market-updates',
+      },
+      {
+        label: 'Add a free appraisal button to every guide',
+        description: 'At the bottom of each piece of content, link to your appraisal request form. Readers who are interested enough to finish an article are exactly the people you want to capture.',
+        stepType: 'task',
+      },
+      {
+        label: 'Share it where your clients are',
+        description: 'Post each guide to your Facebook page and email it to your contact list. You don\'t need a big production — copy the first paragraph, add the link, and hit send.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -162,6 +237,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Build Dubbo testimonials hub',
     expectedImpact:
@@ -189,8 +265,40 @@ export const seedRecommendations: Recommendation[] = [
     ],
     competitors: makeCompetitors([
       {
-        name: 'Local Dubbo Agencies',
-        gap: 'More visible online reviews and testimonials despite potentially lower satisfaction scores',
+        name: 'Ray White Dubbo',
+        gap: 'Showcases client testimonials and case studies prominently across their website and Google profile',
+        totalCitations: 38,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        llmSnippet: 'Ray White Dubbo is frequently cited for their strong client testimonials and publicly visible reviews on Google and RateMyAgent, making them a trusted choice for Dubbo property sellers.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Most trusted real estate agent in Dubbo', snippet: 'Ray White Dubbo is well regarded by past clients and has a strong review presence on Google and RateMyAgent, with testimonials highlighting fast sales and strong communication.' },
+          { platform: 'Gemini',  prompt: 'Real estate agent reviews Dubbo NSW', snippet: 'Ray White Dubbo appears prominently in review searches, with a dedicated testimonials section on their website and an active Google Business profile.' },
+          { platform: 'Perplexity', prompt: 'Best reviewed real estate agency Dubbo', snippet: 'Ray White Dubbo consistently appears in AI responses about trusted Dubbo agents, supported by publicly visible RateMyAgent reviews and client success stories.' },
+        ],
+      },
+      {
+        name: 'McGrath Dubbo',
+        gap: 'Dedicated client success stories page with specific property outcomes builds immediate seller confidence',
+        totalCitations: 25,
+        citationRank: 2,
+        citedBy: ['Gemini', 'Perplexity'],
+        llmSnippet: 'McGrath Dubbo maintains a dedicated success stories section on their website, showing specific Dubbo properties sold, prices achieved, and client quotes that AI systems surface in trust-related queries.',
+        platformSnippets: [
+          { platform: 'Gemini',  prompt: 'Which Dubbo real estate agents have the best track record', snippet: 'McGrath Dubbo showcases detailed client success stories on their website with specific suburb outcomes and vendor testimonials, helping them rank for agent comparison searches.' },
+          { platform: 'Perplexity', prompt: 'Dubbo real estate agent success stories', snippet: 'McGrath Dubbo\'s website features client case studies detailing property challenges, marketing approaches, and results achieved — frequently cited by AI search tools.' },
+        ],
+      },
+      {
+        name: 'Elders Real Estate Dubbo',
+        gap: 'Vendor testimonials embedded across service pages add credibility at every stage of the customer journey',
+        totalCitations: 17,
+        citationRank: 3,
+        citedBy: ['ChatGPT'],
+        llmSnippet: 'Elders Real Estate Dubbo embeds client testimonials directly on their service pages and publishes a seller guide featuring local success stories, which ChatGPT cites when asked about experienced Dubbo agents.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Experienced property agents Dubbo NSW', snippet: 'Elders Real Estate Dubbo is noted for their detailed seller guide and embedded client testimonials, making their experience and local knowledge immediately visible to prospective vendors.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -212,11 +320,31 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de016e9c10756b6b6132a0', [
-      '1. Collect recent testimonials from sellers, buyers, and landlords with written permissions',
-      '2. Write 5-10 short case studies highlighting challenge, approach, and results',
-      '3. Embed third-party review snippets and badges from Google, RateMyAgent where allowed',
-      '4. Create dedicated hub pages for Dubbo testimonials and case studies',
-      '5. Add strong calls-to-action for free appraisals and rental assessments on each page',
+      {
+        label: 'Ask 5 recent clients for a quick quote',
+        description: 'Reach out to clients you\'ve helped in the last 6 months. A short message — "Would you mind if I shared your feedback on our website?" — is all it takes. Most happy clients say yes.',
+        stepType: 'task',
+      },
+      {
+        label: 'Write a short story for each client',
+        description: 'One paragraph per client: what they needed to do, what made their situation tricky, and what the result was. Specific details (suburb, timeframe, price achieved) make it believable and persuasive.',
+        stepType: 'task',
+      },
+      {
+        label: 'Pull in your third-party reviews',
+        description: 'Your Google and RateMyAgent reviews already exist — you just need to surface them. Add a widget or embed a direct link so visitors can see them without leaving your site.',
+        stepType: 'link',
+        links: [
+          { label: 'Your Google Business reviews', url: 'https://www.google.com/search?q=Raine+%26+Horne+Dubbo+reviews' },
+          { label: 'RateMyAgent profile', url: 'https://www.ratemyagent.com.au' },
+        ],
+      },
+      {
+        label: 'Create a dedicated testimonials page',
+        description: 'Put everything in one place — client quotes, case studies, and review links. This page becomes the answer when a prospect asks "why should I choose you?"',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/reviews-dubbo',
+      },
     ]),
   },
 
@@ -238,6 +366,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Optimize PM page with processes and CTAs',
     expectedImpact:
@@ -267,7 +396,31 @@ export const seedRecommendations: Recommendation[] = [
       'Your specialized PM team\'s expertise isn\'t effectively communicated online',
       'Competitors with clearer value propositions are winning your leads',
     ],
-    competitors: [],
+    competitors: makeCompetitors([
+      {
+        name: 'Ray White Dubbo',
+        gap: 'Dedicated PM page with clear process steps, response time guarantees, and prominent enquiry forms',
+        totalCitations: 29,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Perplexity'],
+        llmSnippet: 'Ray White Dubbo\'s property management page clearly outlines their service process, response time commitments, and fee structure, making it the top result when landlords ask AI for Dubbo property managers.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Best property managers in Dubbo NSW', snippet: 'Ray White Dubbo is frequently recommended for property management in Dubbo, with their website clearly outlining service standards, response times, and landlord FAQs.' },
+          { platform: 'Perplexity', prompt: 'Property management fees Dubbo', snippet: 'Ray White Dubbo provides transparent information about their property management fees and service inclusions on their website, making them a top result for landlord queries.' },
+        ],
+      },
+      {
+        name: 'McGrath Dubbo',
+        gap: 'PM service page with landlord testimonials and a detailed FAQ section addressing common administration concerns',
+        totalCitations: 18,
+        citationRank: 2,
+        citedBy: ['Gemini'],
+        llmSnippet: 'McGrath Dubbo\'s property management service page includes landlord testimonials and a comprehensive FAQ addressing response times and administration processes, cited by Gemini for property management queries.',
+        platformSnippets: [
+          { platform: 'Gemini', prompt: 'Dubbo property management services', snippet: 'McGrath Dubbo provides clear information about their property management service, including landlord FAQs and case studies demonstrating their administration standards.' },
+        ],
+      },
+    ]),
     sources: makeSources(
       [
         {
@@ -297,11 +450,27 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de016e9c10756b6b6132a1', [
-      '1. Create comprehensive step-by-step property management process with specific response time commitments (24-48 hour turnarounds)',
-      '2. Develop transparent fee structure page showing all inclusions, exclusions, and service guarantees',
-      '3. Design and place prominent \'Get Free Rental Appraisal\' forms above the fold on all PM pages',
-      '4. Add dedicated testimonials section featuring recent property management success stories and landlord reviews',
-      '5. Implement live chat or callback widget specifically for landlord enquiries',
+      {
+        label: 'Write out your property management process in plain steps',
+        description: 'Landlords want to know exactly what happens after they sign up. Write it out simply — "We do X within 24 hours, then Y, then Z." Even 5 bullet points is enough to build confidence.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/property-management-dubbo',
+      },
+      {
+        label: 'Be upfront about your fees',
+        description: 'A page that clearly lists what\'s included, what costs extra, and what your response guarantees are will outperform vague "contact us for pricing" every time. Transparency wins landlord trust.',
+        stepType: 'task',
+      },
+      {
+        label: 'Add a rental appraisal form above the fold',
+        description: 'The most important thing a landlord should see first on your PM page is a way to get a free rental appraisal. Put the form — or a prominent button to it — before they have to scroll.',
+        stepType: 'task',
+      },
+      {
+        label: 'Add a few landlord testimonials',
+        description: 'Even 2–3 quotes from happy landlords on this page make a big difference. Ask a couple of long-term clients if you can use their words. Specific details (e.g. "they found me a tenant within a week") work best.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -323,6 +492,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Claim and optimize local directory profiles',
     expectedImpact:
@@ -350,11 +520,39 @@ export const seedRecommendations: Recommendation[] = [
         name: 'Matt Hansen Real Estate',
         pageUrl: 'https://matthansenrealestate.com.au/property-appraisal/',
         gap: 'Maintains complete directory profiles with clear free appraisal messaging across all channels',
+        totalCitations: 41,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        llmSnippet: 'Matt Hansen Real Estate appears in multiple local directories with fully completed profiles and consistent "free property appraisal Dubbo" messaging, making them the top AI recommendation for appraisal searches.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Free property appraisal Dubbo', snippet: 'Matt Hansen Real Estate is consistently recommended for free property appraisals in Dubbo, with their LocalSearch and Google profiles prominently featuring their no-obligation appraisal offer.' },
+          { platform: 'Gemini',  prompt: 'Property appraisal Dubbo NSW', snippet: 'Matt Hansen Real Estate ranks highly for Dubbo appraisal searches, with complete LocalSearch.com.au and API member directory profiles highlighting their free appraisal service.' },
+          { platform: 'Perplexity', prompt: 'Who offers free home appraisals in Dubbo', snippet: 'Matt Hansen Real Estate offers complimentary property appraisals in Dubbo, with their directory profiles clearly stating "no obligation, no cost" valuations for homeowners.' },
+        ],
       },
       {
         name: 'Elders Real Estate Dubbo',
         pageUrl: 'https://dubbo.eldersrealestate.com.au/about-us/',
         gap: 'Actively promotes no-obligation appraisals through optimized directory listings',
+        totalCitations: 28,
+        citationRank: 2,
+        citedBy: ['ChatGPT', 'Gemini'],
+        llmSnippet: 'Elders Real Estate Dubbo maintains active profiles on LocalSearch, Australian Property Institute, and Google Business, all featuring their no-obligation appraisal offer for Dubbo homeowners.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Real estate appraisals near me Dubbo', snippet: 'Elders Real Estate Dubbo is frequently cited for their directory presence, with complete profiles on LocalSearch and API member directory highlighting free appraisals in the Dubbo area.' },
+          { platform: 'Gemini',  prompt: 'Dubbo real estate agents offering free valuations', snippet: 'Elders Real Estate Dubbo maintains comprehensive local directory listings and offers free property valuations, making them visible across multiple Dubbo appraisal searches.' },
+        ],
+      },
+      {
+        name: 'Ray White Dubbo',
+        gap: 'Consistent brand presence across national and local directories drives appraisal enquiries',
+        totalCitations: 16,
+        citationRank: 3,
+        citedBy: ['Perplexity'],
+        llmSnippet: 'Ray White Dubbo\'s national brand profile and consistent local directory presence means they appear in AI answers for property appraisal queries even without an optimized local page.',
+        platformSnippets: [
+          { platform: 'Perplexity', prompt: 'Top real estate agencies Dubbo', snippet: 'Ray White Dubbo benefits from their strong national brand presence and consistent directory profiles, appearing in Perplexity results for appraisal-related searches in the Dubbo area.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -381,11 +579,46 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de01cb9c10756b6b6132a9', [
-      '1. Claim or create profiles on LocalSearch.com.au and API.org.au within 24 hours',
-      '2. Ensure exact NAP consistency: business name, phone, address matching website',
-      '3. Add service keywords: \'Free property appraisal Dubbo\' and \'Rental appraisal Dubbo NSW\'',
-      '4. Upload 3-5 professional photos of team and recent appraisal work',
-      '5. Add business description emphasizing free appraisals and fast response times',
+      {
+        label: 'Claim your profiles on these two directories',
+        description: 'Both LocalSearch and the API member directory are trusted sources that Google uses to verify your business. Competitors already have profiles here — claiming yours takes about 10 minutes each.',
+        stepType: 'link',
+        links: [
+          { label: 'LocalSearch.com.au — claim your free listing', url: 'https://www.localsearch.com.au/claim-listing' },
+          { label: 'API.org.au — member directory listing', url: 'https://www.api.org.au/find-a-member' },
+        ],
+      },
+      {
+        label: 'Use this exact business info on both profiles',
+        description: 'Small inconsistencies — like "Rd" vs "Road" or a different phone number — confuse Google and reduce how much it trusts your location data. Copy these details exactly as shown.',
+        stepType: 'nap',
+        napData: {
+          name: 'Raine & Horne Dubbo',
+          address: '63 Macquarie Street, Dubbo NSW 2830',
+          phone: '(02) 6882 6999',
+        },
+      },
+      {
+        label: 'Add these search phrases to your profile',
+        description: 'Paste these into the Services or Description field on each profile. These are the exact words Dubbo property owners type when looking for an appraisal — being in the profile text helps you show up.',
+        stepType: 'keyword',
+        keywords: [
+          'Free property appraisal Dubbo',
+          'Rental appraisal Dubbo NSW',
+          'Obligation-free property appraisal',
+          'Home valuation Dubbo',
+        ],
+      },
+      {
+        label: 'Upload a few photos',
+        description: 'Profiles with photos get significantly more clicks than those without. Use 3–5 real images — your office exterior, your team, or a recent property you\'ve listed. Phone photos are fine.',
+        stepType: 'task',
+      },
+      {
+        label: 'Write a short business description',
+        description: 'In 2–3 sentences, mention that you offer free appraisals, how quickly you respond, and that you\'ve been in Dubbo for 40+ years. Keep the tone conversational — write it like you\'d explain it to a neighbour.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -407,6 +640,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Add appraisal hub page',
     expectedImpact:
@@ -434,16 +668,40 @@ export const seedRecommendations: Recommendation[] = [
         name: 'Ray White Dubbo',
         pageUrl: 'https://raywhitedubbo.com.au/sell/property-appraisal',
         gap: 'Dedicated Dubbo appraisal page with detailed offer and form',
+        totalCitations: 44,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        llmSnippet: 'Ray White Dubbo has a dedicated property appraisal page that answers the top questions AI surfaces for Dubbo sellers — including what a free appraisal covers, timelines, and what to expect from the process.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'How to get a free property appraisal in Dubbo', snippet: 'Ray White Dubbo offers free, no-obligation property appraisals through their dedicated appraisal page, which clearly explains the process, timeline, and what information sellers need to prepare.' },
+          { platform: 'Gemini',  prompt: 'Dubbo property appraisal hub page', snippet: 'Ray White Dubbo\'s property appraisal landing page is well-structured with a prominent enquiry form, process explanation, and local suburb coverage — making it the go-to reference for AI tools.' },
+          { platform: 'Perplexity', prompt: 'How much is my house worth Dubbo', snippet: 'Ray White Dubbo provides a free online appraisal request form on their dedicated page, allowing Dubbo homeowners to get a quick estimate of their property\'s current market value.' },
+        ],
       },
       {
         name: 'Matt Hansen Real Estate',
         pageUrl: 'https://matthansenrealestate.com.au/property-appraisal/',
         gap: 'Clear appraisal value promise and easy lead capture',
+        totalCitations: 31,
+        citationRank: 2,
+        citedBy: ['ChatGPT', 'Perplexity'],
+        llmSnippet: 'Matt Hansen Real Estate\'s appraisal hub clearly communicates their "no obligation, no cost" value promise with a simple form above the fold, capturing more leads from Dubbo property owners searching for valuations.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Real estate appraisal Dubbo no obligation', snippet: 'Matt Hansen Real Estate is recommended for their straightforward appraisal process with a clear "no obligation" promise and simple online request form for Dubbo homeowners.' },
+          { platform: 'Perplexity', prompt: 'Property appraisal services Dubbo', snippet: 'Matt Hansen Real Estate provides free property appraisals in Dubbo with their dedicated appraisal page featuring a streamlined enquiry process and local market expertise.' },
+        ],
       },
       {
         name: 'Elders Real Estate Dubbo',
         pageUrl: 'https://dubbo.eldersrealestate.com.au/about-us/',
         gap: 'Prominently promotes free local appraisals on their site',
+        totalCitations: 23,
+        citationRank: 3,
+        citedBy: ['Gemini'],
+        llmSnippet: 'Elders Real Estate Dubbo prominently features their free appraisal offer across their website, with suburb-specific landing pages that Gemini surfaces when homeowners ask about property values in the Dubbo area.',
+        platformSnippets: [
+          { platform: 'Gemini', prompt: 'Dubbo NSW property valuation free', snippet: 'Elders Real Estate Dubbo offers complimentary property appraisals with Dubbo-specific landing pages covering suburbs like Dubbo South, Delroy Park, and Goonoo — regularly cited by Gemini for local valuation queries.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -475,11 +733,27 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de01cb9c10756b6b6132aa', [
-      '1. Draft a clear \'Dubbo Property Appraisal\' page title and compelling introduction',
-      '2. Add online request form with fields for both residential and rental appraisals',
-      '3. List all Dubbo suburbs served and typical turnaround times',
-      '4. Include comprehensive FAQs covering pricing, methodology, and what to expect',
-      '5. Add recent local sale examples and team contact details with photos',
+      {
+        label: 'Create a page just for Dubbo property appraisals',
+        description: 'Right now there\'s no single place people land when they search "free property appraisal Dubbo." This page fixes that. It should have a clear headline, a short explanation of what you offer, and a form.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/free-property-appraisal-dubbo',
+      },
+      {
+        label: 'Add an appraisal request form',
+        description: 'Keep it short: name, phone, property address, and whether it\'s residential or rental. The simpler the form, the more people complete it. Avoid asking for things you don\'t actually need upfront.',
+        stepType: 'task',
+      },
+      {
+        label: 'List the suburbs you cover and your turnaround time',
+        description: 'Prospects want to know if you\'ll come to their area and how fast. A simple sentence — "We cover all Dubbo suburbs and surrounding areas, with appraisals typically completed within 24–48 hours" — answers both.',
+        stepType: 'task',
+      },
+      {
+        label: 'Add a short FAQ section',
+        description: 'Answer the questions you get asked most: Is it free? Do I have to sell? How long does it take? What do you look at? A 4–5 question FAQ removes the hesitation that stops people from submitting.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -501,6 +775,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Add appraisal form with callback promise',
     expectedImpact:
@@ -529,6 +804,37 @@ export const seedRecommendations: Recommendation[] = [
         name: 'Ray White Dubbo',
         pageUrl: 'https://raywhitedubbo.com.au/sell/property-appraisal',
         gap: 'Captures appraisal requests immediately with prominent form placement and simple fields',
+        totalCitations: 36,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        llmSnippet: 'Ray White Dubbo\'s appraisal page features a short 4-field form above the fold with a "1-hour callback" promise, making it the most-cited option when AI tools answer questions about getting a quick property appraisal in Dubbo.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Quick property appraisal Dubbo', snippet: 'Ray White Dubbo offers a streamlined online appraisal form with a fast callback promise, allowing Dubbo sellers to request a valuation in under two minutes from their mobile device.' },
+          { platform: 'Gemini',  prompt: 'Best way to get a property appraisal in Dubbo quickly', snippet: 'Ray White Dubbo\'s simple appraisal request form and 1-hour callback commitment makes them the top recommendation for sellers who want a fast response.' },
+          { platform: 'Perplexity', prompt: 'Sell property Dubbo fast', snippet: 'Ray White Dubbo is frequently recommended for their fast appraisal response times, with their website making it easy to submit a request and receive a callback within the hour.' },
+        ],
+      },
+      {
+        name: 'McGrath Dubbo',
+        gap: 'Mobile-optimized appraisal form with sticky call button captures sellers at their moment of intent',
+        totalCitations: 21,
+        citationRank: 2,
+        citedBy: ['Gemini'],
+        llmSnippet: 'McGrath Dubbo\'s mobile-first appraisal experience includes a sticky "Call Now" button and a short form optimized for thumb navigation, frequently cited by Gemini for mobile property search queries.',
+        platformSnippets: [
+          { platform: 'Gemini', prompt: 'Contact real estate agent Dubbo mobile', snippet: 'McGrath Dubbo\'s mobile website features a prominent call button and streamlined appraisal form that works well on smartphones, making it easy for sellers to reach out on the go.' },
+        ],
+      },
+      {
+        name: 'Matt Hansen Real Estate',
+        gap: 'Clear "respond within 24 hours" messaging on their appraisal page sets expectations and reduces hesitation',
+        totalCitations: 14,
+        citationRank: 3,
+        citedBy: ['Perplexity'],
+        llmSnippet: 'Matt Hansen Real Estate clearly states response time expectations on their appraisal form page, with "we respond within 24 hours" prominently displayed — a detail Perplexity cites when recommending reliable Dubbo appraisal options.',
+        platformSnippets: [
+          { platform: 'Perplexity', prompt: 'Reliable property appraisal Dubbo', snippet: 'Matt Hansen Real Estate provides reliable property appraisals in Dubbo, with clear response time commitments and a straightforward enquiry process for homeowners.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -555,11 +861,27 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de01cb9c10756b6b6132ab', [
-      '1. Design and add 6-field appraisal form above the fold on relevant pages',
-      '2. Include prominent \'1-hour callback guarantee\' messaging next to submit button',
-      '3. Add brief privacy statement to build trust and comply with regulations',
-      '4. Implement sticky \'Call Now\' button for mobile devices',
-      '5. Set up automated lead routing to ensure 1-hour response promise is met',
+      {
+        label: 'Add a short appraisal form to the top of your page',
+        description: 'The form should be visible without scrolling. Ask for name, phone, and property address only — that\'s all you need to call them back. More fields = fewer submissions.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au',
+      },
+      {
+        label: 'Add a "we call you back within 1 hour" message',
+        description: 'Put this directly next to your submit button. Ray White Dubbo does this and it\'s one of the main reasons they get cited for fast-response appraisals. A specific promise is far more convincing than "we\'ll be in touch."',
+        stepType: 'task',
+      },
+      {
+        label: 'Add a sticky call button for people on mobile',
+        description: 'Most property searches happen on phones. A button that stays at the bottom of the screen as people scroll — showing your number and a "Call now" label — makes it effortless to reach you.',
+        stepType: 'task',
+      },
+      {
+        label: 'Make sure someone actually calls back within the hour',
+        description: 'The promise only works if you keep it. Set up an internal alert (email, SMS, or your CRM) so whoever is on duty gets notified the moment a form is submitted.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -581,6 +903,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Build suburb pages',
     expectedImpact:
@@ -610,8 +933,50 @@ export const seedRecommendations: Recommendation[] = [
     ],
     competitors: makeCompetitors([
       {
-        name: 'Local Dubbo Agencies',
-        gap: 'Competitors likely have suburb pages capturing local searches you\'re missing',
+        name: 'Ray White Dubbo',
+        gap: 'Dedicated suburb pages for Dubbo South, Dubbo City, and Mitchell capture hyper-local search traffic',
+        totalCitations: 39,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini'],
+        llmSnippet: 'Ray White Dubbo maintains dedicated suburb service pages for key Dubbo areas including Dubbo South, Delroy Park, and Whylandra, consistently appearing in AI answers for suburb-specific real estate searches.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Real estate agents in Dubbo South', snippet: 'Ray White Dubbo is frequently recommended for buyers and sellers in Dubbo South and surrounding suburbs, with dedicated suburb pages covering local market stats and agent contacts.' },
+          { platform: 'Gemini',  prompt: 'Property for sale Dubbo South', snippet: 'Ray White Dubbo\'s suburb-specific pages provide detailed market data, recent sales, and agent contacts for Dubbo South and other key Dubbo precincts.' },
+        ],
+      },
+      {
+        name: 'McGrath Dubbo',
+        gap: 'Suburb profiles with median prices, recent sales, and agent bios appear for local property searches',
+        totalCitations: 27,
+        citationRank: 2,
+        citedBy: ['Perplexity', 'Gemini'],
+        llmSnippet: 'McGrath Dubbo\'s suburb profile pages include median sale prices, days-on-market data, and local agent bios — making them the primary source Perplexity and Gemini cite for suburb-level property queries in Dubbo.',
+        platformSnippets: [
+          { platform: 'Perplexity', prompt: 'Dubbo NSW suburb property prices', snippet: 'McGrath Dubbo provides suburb-specific market data on their website, covering median house prices, recent sales, and market trends for Dubbo\'s key residential precincts.' },
+          { platform: 'Gemini',  prompt: 'Property market Dubbo suburbs', snippet: 'McGrath Estate Agents Dubbo publishes suburb-level property profiles with local market data, helping buyers and sellers understand price trends across the Dubbo metropolitan area.' },
+        ],
+      },
+      {
+        name: 'Elders Real Estate Dubbo',
+        gap: 'Rural and lifestyle suburb pages capture searches that a general Dubbo page can\'t rank for',
+        totalCitations: 18,
+        citationRank: 3,
+        citedBy: ['ChatGPT'],
+        llmSnippet: 'Elders Real Estate Dubbo has suburb-specific pages targeting rural and lifestyle property seekers in surrounding areas like Narromine and Trangie, frequently cited by ChatGPT for rural Dubbo suburb searches.',
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Real estate agents near Dubbo rural areas', snippet: 'Elders Real Estate Dubbo covers surrounding rural townships and lifestyle suburbs with dedicated landing pages, making them the recommended agency for broader Dubbo region property searches.' },
+        ],
+      },
+      {
+        name: 'LJ Hooker Dubbo',
+        gap: 'Consistent suburb content targeting long-tail searches like "houses for sale [suburb] Dubbo" captures motivated buyers',
+        totalCitations: 12,
+        citationRank: 4,
+        citedBy: ['Perplexity'],
+        llmSnippet: 'LJ Hooker Dubbo targets long-tail suburb searches with dedicated pages for key Dubbo localities, appearing in Perplexity results for specific suburb property queries.',
+        platformSnippets: [
+          { platform: 'Perplexity', prompt: 'Houses for sale in Glenfield Park Dubbo', snippet: 'LJ Hooker Dubbo has local suburb pages covering Glenfield Park and other Dubbo localities, providing buyers with suburb-specific listings and market information.' },
+        ],
       },
     ]),
     sources: makeSources(
@@ -643,10 +1008,27 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de02549c10756b6b6132b3', [
-      '1. List priority Dubbo suburbs and core services: sales and property management',
-      '2. Write plain-language pages covering what you do, process, FAQs, and contact',
-      '3. Show recent local outcomes and agent names to prove expertise',
-      '4. Link these pages from the homepage and relevant profiles',
+      {
+        label: 'List the suburbs you want to target first',
+        description: 'Start with the 3–5 suburbs where you do most of your business — Glenfield Park, South Dubbo, Dubbo CBD, and surrounds. You can add more later. Trying to do all of them at once is how this task never gets done.',
+        stepType: 'task',
+      },
+      {
+        label: 'Write a page for each suburb',
+        description: 'Each page needs: what you do there (sales, rentals, or both), a sentence about why you know the area, and a contact or appraisal form. 300 words minimum. Keep the language simple — write it like you\'re talking to a homeowner, not an SEO tool.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/dubbo',
+      },
+      {
+        label: 'Include a recent result or local detail on each page',
+        description: 'One line like "We recently sold a home in [suburb] in 18 days at $X" tells more than a paragraph of generic copy. If you can\'t use a specific sale, mention something local — a school, landmark, or suburb character.',
+        stepType: 'task',
+      },
+      {
+        label: 'Link to these pages from your homepage and directory profiles',
+        description: 'New pages won\'t be found unless something points to them. Add a "Areas we serve" section to your homepage, and include links in your LocalSearch and Google Business profiles.',
+        stepType: 'task',
+      },
     ]),
   },
 
@@ -668,6 +1050,7 @@ export const seedRecommendations: Recommendation[] = [
     assignedTo: null,
     assignChoice: null,
     acceptedAt: null,
+    acceptedBy: null,
     completedAt: null,
     shortAction: 'Publish case studies with outcomes',
     expectedImpact:
@@ -695,7 +1078,44 @@ export const seedRecommendations: Recommendation[] = [
       'Buyers and sellers want proof of local success before choosing an agent',
       'Competitors may be winning listings simply by showing their results better',
     ],
-    competitors: [],
+    competitors: makeCompetitors([
+      {
+        name: 'Ray White Dubbo',
+        gap: 'Publishes detailed sold property stories with prices and client quotes, cited as proof of local agent credibility',
+        llmSnippet: 'Ray White Dubbo showcases sold properties with full case studies including sale prices, days on market, and client testimonials — frequently cited by AI platforms when buyers and sellers ask about proven Dubbo agents.',
+        totalCitations: 42,
+        citationRank: 1,
+        citedBy: ['ChatGPT', 'Gemini', 'Perplexity'],
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Most successful real estate agent Dubbo with proven results', snippet: 'Ray White Dubbo is frequently cited for their detailed sold property records and client success stories, with specific case studies showing sale outcomes and vendor testimonials on their website.' },
+          { platform: 'Gemini',  prompt: 'Real estate agent success stories Dubbo NSW', snippet: 'Ray White Dubbo maintains a success stories section with real Dubbo properties, achieved prices, and client quotes — making them the primary source for agent credibility queries in the area.' },
+          { platform: 'Perplexity', prompt: 'Which Dubbo real estate agent gets the best sale results', snippet: 'Ray White Dubbo is consistently highlighted for their strong track record in Dubbo, with published sold results and vendor testimonials available on their website and RateMyAgent profile.' },
+        ],
+      },
+      {
+        name: 'McGrath Dubbo',
+        gap: 'Case studies with specific suburb outcomes and vendor quotes build trust before first contact',
+        llmSnippet: 'McGrath Dubbo publishes outcome-focused case studies with specific Dubbo properties, achieved prices, and direct vendor quotes that ChatGPT surfaces when users ask about top-performing Dubbo real estate agencies.',
+        totalCitations: 29,
+        citationRank: 2,
+        citedBy: ['ChatGPT', 'Perplexity'],
+        platformSnippets: [
+          { platform: 'ChatGPT', prompt: 'Dubbo real estate agent track record reviews', snippet: 'McGrath Dubbo features client case studies with specific property outcomes and vendor testimonials, frequently cited when AI tools answer questions about reputable Dubbo agents with proven results.' },
+          { platform: 'Perplexity', prompt: 'Best real estate agents Dubbo client reviews', snippet: 'McGrath Dubbo\'s website includes detailed client success stories with specific sale prices, suburb data, and outcome metrics — providing strong social proof for prospective clients.' },
+        ],
+      },
+      {
+        name: 'Elders Real Estate Dubbo',
+        gap: 'Long-standing brand with visible client outcomes surfaces in Gemini for reputation and experience queries',
+        llmSnippet: 'Elders Real Estate Dubbo leverages their national brand heritage with local Dubbo success stories, appearing in Gemini results when prospective clients search for experienced, proven agents in the region.',
+        totalCitations: 18,
+        citationRank: 3,
+        citedBy: ['Gemini'],
+        platformSnippets: [
+          { platform: 'Gemini', prompt: 'Experienced trusted real estate agent Dubbo', snippet: 'Elders Real Estate Dubbo is recommended for their long-standing market presence and client outcomes, with their website featuring vendor testimonials and sold results for the Dubbo region.' },
+        ],
+      },
+    ]),
     sources: makeSources(
       [
         {
@@ -725,1320 +1145,28 @@ export const seedRecommendations: Recommendation[] = [
     },
     generatedAsset: null,
     checklist: makeChecklist('69de02549c10756b6b6132b4', [
-      '1. Contact 10 recent satisfied clients for permission to share their success stories',
-      '2. Document each story: property details, challenge faced, solution provided, outcome achieved',
-      '3. Capture client testimonials via video (best), written quotes, or audio recordings',
-      '4. Create dedicated case studies page showing property photos, sale prices, and client quotes',
-      '5. Add testimonial widgets to homepage and key service pages for instant credibility',
+      {
+        label: 'Reach out to 5 recent clients for their story',
+        description: 'You don\'t need 10 — five good stories are more powerful than ten thin ones. Message clients you know were happy and ask if they\'d be comfortable letting you share what you achieved together.',
+        stepType: 'task',
+      },
+      {
+        label: 'Write each story in three sentences',
+        description: 'Keep it tight: (1) what the client wanted to do, (2) what made it complicated, (3) what the result was. Include the suburb and a specific number — days on market, price achieved, or rental yield — wherever possible.',
+        stepType: 'task',
+      },
+      {
+        label: 'Create a case studies page',
+        description: 'One page that holds all your stories. Think of it as your portfolio. When a prospect is comparing you against another agency, this is the page that closes the gap.',
+        stepType: 'task',
+        targetPage: 'https://raineandhorne.com.au/dubbo/case-studies',
+      },
+      {
+        label: 'Put a quote or two on your homepage',
+        description: 'A short client quote near the top of your homepage — right next to your "Free appraisal" button — converts more visitors into enquiries because it removes doubt before it even forms.',
+        stepType: 'task',
+      },
     ]),
   },
 
-  // 9 — 69de02549c10756b6b6132b5
-  {
-    id: '69de02549c10756b6b6132b5',
-    title: 'Set Clear PM Response Standards to Convert More Leads',
-    description:
-      'Property management inquiries often stall when landlords can\'t find clear communication standards and response times. By publishing explicit service commitments, you\'ll reduce friction in the decision process and showcase your professionalism.',
-    category: 'Conversion',
-    impactLabel: 'High impact',
-    effort: 'Bigger lift',
-    themeId: 'residential-property-leasing',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 6, // niche: internal process page
-    tags: ['Conversion', 'High Impact'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish service standards',
-    expectedImpact:
-      'Publishing clear service standards will reduce objections during the inquiry process and increase conversion rates from website visitors to actual property management leads. Landlords who see defined response times are more likely to trust you with their investment properties.',
-    keyInsights: [
-      'Despite a perfect 5.0 rating showing strong satisfaction, this strength isn\'t being leveraged on the website',
-      'The absence of published communication standards creates unnecessary friction for potential clients',
-      'Competitors who clearly state service commitments capture leads that might otherwise choose you',
-    ],
-    swotDrivers: [
-      'Occasional complaints about administration in property management',
-      'Changing Consumer Expectations',
-      'Professionalism and Expertise',
-    ],
-    competitorsInsight: [
-      'Competitors who publish clear service standards capture trust-sensitive landlords earlier in the decision process',
-      'The absence of visible communication commitments creates an opportunity gap competitors can exploit',
-    ],
-    targetPages: [
-      'https://raineandhorne.com.au/dubbo/property-management-support',
-      'https://raineandhorne.com.au/dubbo/communication-standards',
-    ],
-    whyItWorks: [
-      'Landlords choose property managers based on trust and clear communication expectations',
-      'Admin complaints noted in SWOT analysis indicate gaps in setting proper expectations',
-      'Changing consumer expectations demand transparency before they even inquire',
-    ],
-    competitors: [],
-    sources: makeSources(
-      [
-        {
-          title: 'SWOT Analysis - Administrative Weaknesses',
-          source: 'SWOT',
-          snippet: 'Occasional complaints about administration in property management',
-        },
-        {
-          title: 'Market Threat Assessment',
-          source: 'SWOT',
-          snippet: 'Changing Consumer Expectations',
-        },
-        {
-          title: 'Customer Satisfaction Data',
-          source: 'gemini',
-          snippet: 'Perfect 5.0 rating indicating strong satisfaction',
-        },
-      ],
-      'https://raineandhorne.com.au/dubbo/property-management-support',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'Before landlords enquire, they want simple, clear communication standards they can trust. No such page exists.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de02549c10756b6b6132b5', [
-      '1. Define and document your actual response times for urgent (4 hours), routine (24 hours), and maintenance requests (48 hours)',
-      '2. Create a simple service standards page listing communication commitments, update frequencies, and escalation procedures',
-      '3. Add direct contact information for different request types: urgent repairs, routine inquiries, and after-hours emergencies',
-      '4. Include a brief FAQ addressing the most common administrative concerns raised by landlords',
-      '5. Place a prominent inquiry form and phone number on every property management page',
-    ]),
-  },
-
-  // 10 — 69de03209c10756b6b6132bd
-  {
-    id: '69de03209c10756b6b6132bd',
-    title: 'Complete Domain, Realestate and Farmbuy Rural Profiles',
-    description:
-      'Major property portals like Domain, Realestate.com.au, and Farmbuy dominate rural property searches in Dubbo, appearing frequently in search results and citation sources. Completing and optimizing your profiles on these platforms will significantly increase your visibility to rural buyers and sellers.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'rural-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 20, // brand/website-wide portals
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Complete key portal profiles',
-    expectedImpact:
-      'By establishing a strong presence on these dominant property portals, you\'ll capture more leads from rural property seekers. This increased visibility will drive more direct inquiries, phone calls, and website traffic while simultaneously strengthening your local SEO through improved citation consistency.',
-    keyInsights: [
-      'Property portals serve as both lead generation platforms and critical citation sources for local SEO',
-      'Rural property searches have unique characteristics that require specialized portal optimization',
-    ],
-    swotDrivers: [
-      'Opportunity to leverage established portal traffic for rural property searches',
-      'Threat from competitors who maintain active, optimized portal profiles',
-    ],
-    competitorsInsight: [
-      'Major property portals rank prominently for rural property searches, making profile optimization essential',
-      'Competitors with complete, active portal profiles capture leads before prospects reach agency websites',
-    ],
-    targetPages: ['https://raineandhorne.com.au'],
-    whyItWorks: [
-      'These portals appear prominently in your citation sources, indicating Google uses them to verify business information',
-      'Rural buyers and sellers typically start their property search on these major portals before contacting agents',
-      'Consistent business details across portals strengthen Google\'s trust signals and improve local search rankings',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: 'Competitors likely have established portal presence capturing rural property searches',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au',
-        gap: 'Active portal profiles provide competitive advantage in rural market visibility',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhiterichardsonandsinclair.com.au',
-        gap: 'Major franchise benefits from strong portal relationships and visibility',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Domain Australia',
-          source: 'domain.com.au',
-          snippet: 'Major Australian property portal used by buyers and sellers.',
-        },
-        {
-          title: 'realestate.com.au',
-          source: 'realestate.com.au',
-          snippet: 'Leading property portal where agencies list and promote properties.',
-        },
-        {
-          title: 'Farmbuy',
-          source: 'farmbuy.com',
-          snippet: 'Specialist portal for farms and rural properties in Australia.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching on Google for rural property sales in Dubbo often start on big property portals. Your site likely lacks fully completed, rural-focused profiles.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03209c10756b6b6132bd', [
-      '1. Claim or verify your agency profiles on Domain.com.au, Realestate.com.au, and Farmbuy.com',
-      '2. Ensure exact business name, address, and phone number consistency across all platforms',
-      '3. Add rural-specific service descriptions, highlighting expertise in farms, lifestyle blocks, and acreage',
-      '4. Upload professional team photos and direct website links to build trust',
-      '5. Populate profiles with current rural listings and recent sales with detailed, keyword-rich descriptions',
-    ]),
-  },
-
-  // 11 — 69de03209c10756b6b6132be
-  {
-    id: '69de03209c10756b6b6132be',
-    title: 'Add Rural Sales Results Hub with Local Proof',
-    description:
-      'Competitors like Elders and Ray White showcase dedicated rural property sales results that build seller trust and improve search visibility. Creating a browsable hub of your recent rural sales with filters, case studies, and agent links will demonstrate your local market expertise.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'rural-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 9, // region-specific: rural Dubbo
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish rural sales results hub',
-    expectedImpact:
-      'A professional rural sales hub will position your agency as the local rural property expert, leading to more seller inquiries and buyer registrations. This social proof will improve your search rankings for rural property queries.',
-    keyInsights: [
-      'Rural property sellers specifically look for agencies with proven local results before making contact',
-      'Search engines favor websites that demonstrate expertise through comprehensive result showcases',
-    ],
-    swotDrivers: [
-      'Competitors display detailed rural sales data that attracts seller trust',
-      'Missing rural proof content limits visibility in local property searches',
-    ],
-    competitorsInsight: [
-      'Leading agencies use rural sales proof as a primary trust signal for high-value property sellers',
-      'Detailed sales results pages serve as powerful content for search engines and AI systems to reference',
-    ],
-    targetPages: ['https://raineandhorne.com.au'],
-    whyItWorks: [
-      'Rural sellers research agencies online before choosing who to trust with their valuable properties',
-      'Google and AI systems prioritize websites with clear, citable proof of local market activity',
-      'Competitors already showcase rural results, putting you at a disadvantage for seller inquiries',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://dubborural.eldersrealestate.com.au/rural/sold/',
-        gap: 'Features a comprehensive sold rural listings hub that builds immediate seller confidence',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhiterichardsonandsinclair.com.au/properties/sold-rural/nsw/dubbo-2830/lifestyle/3110494',
-        gap: 'Displays detailed individual rural property sales pages with comprehensive information',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au/farms-for-sale/',
-        gap: 'Maintains an active rural property hub that attracts and engages potential buyers',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Sold Rural Land & Properties | Elders Real Estate Dubbo Rural',
-          source: 'dubborural.eldersrealestate.com.au',
-          snippet: 'Shows a hub of sold rural properties for the Dubbo area.',
-        },
-        {
-          title: '169L Narromine Road, Dubbo – Sold Rural Lifestyle Property',
-          source: 'raywhiterichardsonandsinclair.com.au',
-          snippet: 'Example of a detailed rural sold page with key property details.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching on Google for rural property sales in Dubbo want to see proven local results. Your site is missing an easy-to-browse page showing recent rural sales.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03209c10756b6b6132be', [
-      '1. Create a dedicated Rural Sales Results page featuring your recent rural and lifestyle property sales',
-      '2. Include filterable property details: type, acreage, water features, location, and results',
-      '3. Add brief case studies for each sale highlighting unique challenges and outcomes',
-      '4. Link each result to the responsible agent\'s profile to build individual credibility',
-      '5. Prominently link the hub from your homepage and rural services pages',
-    ]),
-  },
-
-  // 12 — 69de03209c10756b6b6132bf
-  {
-    id: '69de03209c10756b6b6132bf',
-    title: 'Create Rural Property Sales Page to Capture Dubbo Market',
-    description:
-      'Your competitors are winning rural property searches in Dubbo with dedicated rural service pages. Without a clear rural property page, you\'re invisible to farmers and lifestyle buyers searching online. Creating this page will immediately boost your visibility in Google and AI answers for high-value rural sales.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'rural-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 7, // niche: single rural landing page
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish rural property sales page',
-    expectedImpact:
-      'Capturing even 2-3 more rural listings per year significantly boosts revenue given higher sale prices. You\'ll appear in Google searches for \'rural property Dubbo\' and \'farms for sale Dubbo\', driving qualified inquiries from both buyers and sellers.',
-    keyInsights: [
-      'Elders Dubbo runs an entire subdomain for rural properties showing market demand',
-      'Matt Hansen\'s dedicated farms hub positions them as the rural expert',
-      'Your site lacks any focused rural content despite Dubbo\'s strong agricultural market',
-    ],
-    swotDrivers: [
-      'Weakness: No dedicated rural content while competitors have full sections',
-      'Opportunity: Rural properties offer higher commissions and less competition',
-      'Threat: Losing high-value rural listings to digitally-focused competitors',
-    ],
-    competitorsInsight: [
-      'Competitors treat rural as a distinct market segment requiring dedicated content',
-      'Focused rural pages help Google and AI understand and recommend their services',
-      'Rural-specific content builds trust with farmers who want specialized expertise',
-    ],
-    targetPages: ['https://raineandhorne.com.au'],
-    whyItWorks: [
-      'Rural properties command higher commissions but you\'re missing from searches',
-      'Elders and Matt Hansen dominate Google with dedicated rural pages',
-      'Buyers and sellers can\'t find your rural expertise without a clear landing page',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://dubborural.eldersrealestate.com.au/',
-        gap: 'Entire subdomain dedicated to rural properties captures all rural searches',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au/farms-for-sale/',
-        gap: 'Farms hub page ranks highly and positions them as rural specialists',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhiterichardsonandsinclair.com.au',
-        gap: 'Active rural listings visible online attract buyer inquiries',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Elders Real Estate Dubbo Rural | Local Rural Experts',
-          source: 'dubborural.eldersrealestate.com.au',
-          snippet: 'Dedicated rural site for the Dubbo office.',
-        },
-        {
-          title: 'Farms for Sale | Matt Hansen Real Estate',
-          source: 'matthansenrealestate.com.au',
-          snippet: 'Hub page promoting farm and rural listings near Dubbo.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching for rural properties for sale in Dubbo need a clear page explaining your rural sales service. No dedicated rural page exists.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03209c10756b6b6132bf', [
-      '1. Create \'Rural Property Sales Dubbo\' page with clear service offering',
-      '2. Include sections: Selling Process, Property Types, Market Insights, FAQs',
-      '3. Add recent rural sales results with prices and testimonials',
-      '4. Feature your rural agents with their expertise and direct contact details',
-      '5. Place prominent \'Free Rural Appraisal\' and \'View Rural Listings\' CTAs',
-    ]),
-  },
-
-  // 13 — 69de03de9c10756b6b6132c7
-  {
-    id: '69de03de9c10756b6b6132c7',
-    title: 'Claim and Optimize Top Property Directory Profiles',
-    description:
-      'Major property directories like Domain and Commercial Real Estate rank highly for Dubbo searches, but your business appears to have incomplete or unclaimed profiles. Strengthening your presence on these trusted platforms will increase visibility, capture more leads, and reinforce your market position.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'commercial-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 20, // brand/website-wide directories
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Upgrade directory profiles now',
-    expectedImpact:
-      'Immediate increase in qualified commercial property inquiries through multiple trusted channels. Enhanced local search visibility as Google recognizes consistent business information across authoritative sites.',
-    keyInsights: [
-      'Property directories dominate first page results for Dubbo commercial searches',
-      'Competitors like Elders (22.4% visibility) are capturing leads through better directory optimization',
-    ],
-    swotDrivers: [
-      'Weakness: Incomplete directory presence losing leads to competitors',
-      'Opportunity: Quick implementation can immediately capture market share',
-    ],
-    competitorsInsight: [
-      'Competitors are capturing significant market share through directory dominance',
-      'Directory listings often outrank agency websites, making them critical lead sources',
-    ],
-    targetPages: [
-      'https://commercialrealestate.com.au',
-      'https://domain.com.au',
-      'https://lease.com.au',
-      'https://localsearch.com.au',
-      'https://rhcommercial.com.au',
-    ],
-    whyItWorks: [
-      'Trusted property sites consistently outrank individual agency websites in local searches',
-      'Missing profiles mean lost leads going directly to competitors with stronger directory presence',
-      'Google uses directory citations to verify business legitimacy and boost local rankings',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: '22.4% visibility advantage through comprehensive directory presence',
-      },
-      {
-        name: 'Elders Commercial Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: '20.8% visibility from optimized commercial property profiles',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://domain.com.au',
-        gap: '17.1% visibility leveraging Domain.com.au prominence',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://domain.com.au',
-        gap: '14.6% visibility through established directory profiles',
-      },
-    ]),
-    sources: [],
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People in Dubbo search for commercial property sales and companies. Citation sources like commercialrealestate.com.au and domain.com.au show higher presence than Raine & Horne Dubbo.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03de9c10756b6b6132c7', [
-      '1. Audit and claim profiles on Commercial Real Estate, Domain, and Lease.com.au within 24 hours',
-      '2. Standardize NAP exactly as \'Raine & Horne Dubbo\' across all platforms',
-      '3. Upload recent commercial property photos and current team member details',
-      '4. Add active commercial listings and recent sales to showcase market activity',
-      '5. Set quarterly calendar reminders to refresh content and maintain accuracy',
-    ]),
-  },
-
-  // 14 — 69de03de9c10756b6b6132c8
-  {
-    id: '69de03de9c10756b6b6132c8',
-    title: 'Build Dubbo Commercial Property Sales Hub to Capture More Leads',
-    description:
-      'Your competitors are winning valuable commercial property searches because you lack dedicated pages for office, retail, industrial, and land sales in Dubbo. Creating a comprehensive commercial sales hub with property-type specific pages will help you capture more seller and buyer inquiries.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'commercial-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 11, // region-specific: commercial Dubbo
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Build hub pages',
-    expectedImpact:
-      'By creating dedicated commercial property pages, you\'ll capture more specific searches from both sellers looking to list and buyers searching for properties. This will increase qualified inquiries and help you maintain your market leadership position.',
-    keyInsights: [
-      'You currently lead overall visibility but lack the specific topic pages that drive extra commercial property wins',
-      'Type-focused pages (office, retail, industrial) defend against competitors\' brand searches and capture long-tail terms',
-    ],
-    swotDrivers: [
-      'Strength: Market leadership position to build from',
-      'Opportunity: Unserved search demand for property-type specific content',
-      'Threat: Competitors gaining ground with targeted commercial pages',
-    ],
-    competitorsInsight: [
-      'While you lead in overall visibility, competitors are capturing valuable commercial property searches with targeted pages',
-      'Type-specific pages (office, retail, industrial) are proven to defend against competitors\' brand search advantages',
-    ],
-    targetPages: [
-      'https://raineandhorne.com.au/dubbo-commercial-property-sales',
-      'https://raineandhorne.com.au/dubbo-commercial-office-sales',
-      'https://raineandhorne.com.au/dubbo-commercial-retail-sales',
-      'https://raineandhorne.com.au/dubbo-industrial-property-sales',
-      'https://raineandhorne.com.au/dubbo-commercial-land-sales',
-    ],
-    whyItWorks: [
-      'People search for commercial properties by specific type (office, retail, industrial) and you\'re missing these targeted searches',
-      'Strong citation sites dominate these terms — clear topic pages help you compete effectively',
-      'Google and AI systems need focused pages to properly route commercial property seekers to your business',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: 'They have 22.4% visibility in commercial searches — topic pages will help you widen your lead',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://domain.com.au',
-        gap: 'Capturing 14.6% of commercial searches — your dedicated pages will outcompete their generic content',
-      },
-    ]),
-    sources: [],
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People search for commercial property for sale in Dubbo by type. Your site lacks a single hub with dedicated pages by property type.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03de9c10756b6b6132c8', [
-      '1. Build main Dubbo commercial sales hub covering your services, sales process, and commercial valuations',
-      '2. Create dedicated child pages for office sales, retail sales, industrial property, and commercial land',
-      '3. Add 3-5 recent notable sales with brief case studies on each property type page',
-      '4. Place clear contact forms and free appraisal CTAs prominently on every page',
-      '5. Implement smart internal linking between hub, child pages, and related listings',
-    ]),
-  },
-
-  // 15 — 69de03de9c10756b6b6132c9
-  {
-    id: '69de03de9c10756b6b6132c9',
-    title: 'Add Machine-Readable Business Details to Boost Google Trust',
-    description:
-      'Your website needs consistent, machine-readable business information across all pages to help Google and AI systems properly understand your office details and property listings. This technical improvement will strengthen your search visibility against competitors.',
-    category: 'Technical SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'commercial-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 20, // brand/website-wide schema markup
-    tags: ['Technical SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Add structured business details sitewide',
-    expectedImpact:
-      'Implementing structured data will create stronger trust signals with Google, leading to improved visibility across all commercial property searches in Dubbo. This technical foundation protects your current search rankings while opening opportunities for featured snippets.',
-    keyInsights: [
-      'Your business details aren\'t consistently presented in a way search engines can easily understand',
-      'Trusted competitors like Elders Real Estate have strong citation profiles that Google relies on',
-      'Simple technical improvements can defend your market position with minimal effort',
-    ],
-    swotDrivers: [
-      'Protects current search visibility against technically stronger competitors',
-      'Creates foundation for future AI-driven search features',
-    ],
-    competitorsInsight: [
-      'Competitors with trusted, consistent business details are better positioned for AI-generated search results',
-      'Technical clarity is becoming a key differentiator in local commercial property searches',
-    ],
-    targetPages: [
-      'https://raineandhorne.com.au/',
-      'https://raineandhorne.com.au/dubbo-commercial-property-sales',
-      'https://raineandhorne.com.au/commercial-listings',
-    ],
-    whyItWorks: [
-      'Google relies on consistent business information to trust and rank local businesses higher',
-      'Machine-readable data helps your listings appear correctly in search results and AI-generated answers',
-      'Competitors with better technical implementation can overtake your current market position',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: 'Their consistent business details help them maintain strong local search presence',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://domain.com.au',
-        gap: 'Better technical implementation could help them overtake your current rankings',
-      },
-    ]),
-    sources: [],
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'Trusted citation sources present strong, consistent business information that Google relies on. Your site may not present business details in a consistent, machine-readable way.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de03de9c10756b6b6132c9', [
-      '1. Add consistent NAP (Name, Address, Phone) markup to all pages using Schema.org LocalBusiness format',
-      '2. Implement structured data for property listings including price, size, location, and agent details',
-      '3. Ensure office hours, contact information, and business details appear identically across all pages',
-      '4. Validate implementation using Google\'s Rich Results Test and fix any detected errors',
-    ]),
-  },
-
-  // 16 — 69de04cc9c10756b6b6132d1
-  {
-    id: '69de04cc9c10756b6b6132d1',
-    title: 'Strengthen Directory Profiles to Capture More Dubbo Leads',
-    description:
-      'Major property directories like Realcommercial.com.au and CommercialRealEstate.com.au dominate Dubbo commercial property searches. Your incomplete or missing profiles on these high-traffic sites means lost inquiries while competitors capture leads.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'commercial-property-leasing',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 13, // moderately broad: Dubbo directories
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Claim and optimize directory listings',
-    expectedImpact:
-      'Immediately expand your digital footprint across platforms where active property seekers search. These optimized profiles will generate direct inquiry calls, website referrals, and strengthen your overall online presence. Directory listings work 24/7 to capture leads you\'re currently missing.',
-    keyInsights: [
-      'Top directories command significant search visibility with Realcommercial holding 11.9% share of voice',
-      'Your competitors maintain active profiles capturing leads while your listings remain incomplete',
-      'Directory optimization requires minimal effort but delivers ongoing lead generation',
-    ],
-    swotDrivers: [
-      'Opportunity: Untapped lead sources from high-traffic property platforms',
-      'Threat: Competitors with complete profiles capture your potential customers',
-    ],
-    competitorsInsight: [
-      'All major competitors maintain active profiles on top property directories',
-      'Directory listings often outrank agency websites for commercial property searches',
-      'Competitors use directories as lead generation funnels directing to their services',
-    ],
-    targetPages: [
-      'https://realcommercial.com.au',
-      'https://commercialrealestate.com.au',
-      'https://localsearch.com.au',
-    ],
-    whyItWorks: [
-      'Property seekers search multiple directories before contacting agents; missing profiles mean lost opportunities',
-      'Complete listings on trusted directories boost Google\'s confidence in your business legitimacy',
-      'Directory traffic converts at higher rates because users have high commercial intent',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: 'Maintains 22.4% visibility with active directory presence while you remain unlisted',
-      },
-      {
-        name: 'Elders Commercial Dubbo',
-        pageUrl: 'https://eldersrealestate.com.au',
-        gap: 'Captures 20.8% market visibility through comprehensive directory profiles',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au',
-        gap: 'Achieves 17.1% visibility by maintaining updated directory listings',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Realcommercial.com.au directory dominance',
-          source: 'Market Analysis',
-          snippet: 'Commands 11.9% share of voice in commercial property searches',
-        },
-        {
-          title: 'CommercialRealEstate.com.au market presence',
-          source: 'Market Analysis',
-          snippet: 'Captures 8.33% of commercial property search visibility',
-        },
-        {
-          title: 'Localsearch.com.au local impact',
-          source: 'Market Analysis',
-          snippet: 'Holds 5.95% share for local business searches',
-        },
-      ],
-      'https://realcommercial.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching for commercial property leasing in Dubbo check top directories. Your business is missing fully built, consistent Dubbo profiles on these portals.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de04cc9c10756b6b6132d1', [
-      '1. Claim or create business profiles on Realcommercial, CommercialRealEstate, and Localsearch within 24 hours',
-      '2. Complete all profile fields including Dubbo office address, direct phone, business hours, and service areas',
-      '3. Upload professional team photos, office images, and 10-15 recently leased property examples',
-      '4. Write compelling business descriptions highlighting your Dubbo expertise and commercial property specialization',
-      '5. Add direct links to your website\'s commercial leasing pages and contact forms',
-      '6. Set monthly reminders to update listings with new properties and refresh content',
-    ]),
-  },
-
-  // 17 — 69de04cc9c10756b6b6132d2
-  {
-    id: '69de04cc9c10756b6b6132d2',
-    title: 'Upgrade Property Listings with Floorplans, Terms & Photos',
-    description:
-      'Your commercial property listings lack essential details that tenants need to make decisions. Adding floorplans, lease terms, zoning information, and high-quality photos will help your listings rank better in Google searches and convert more visitors into qualified inspection requests.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'commercial-property-leasing',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 14, // moderately broad: all active listings
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Enhance listing details now',
-    expectedImpact:
-      'Transform your property listings into lead-generating assets by providing all the information tenants need in one place. This will improve your Google visibility for property-specific searches, keep visitors on your site longer, and generate more qualified inspection requests.',
-    keyInsights: [
-      'Competitors are winning searches with address-specific pages containing detailed specifications',
-      'Missing property details force potential tenants to call for basic information, creating friction',
-      'Rich listings with photos and floorplans convert browsers into inspection bookings',
-    ],
-    swotDrivers: [
-      'Weakness: Incomplete listings losing to competitor pages in search results',
-      'Opportunity: Capture high-intent commercial property searches with enhanced content',
-    ],
-    competitorsInsight: [
-      'Competitors publish individual pages for each property address, improving their search visibility',
-      'Clear \'Enquire Now\' and inspection booking buttons appear prominently on all competitor listings',
-      'Detailed specifications help competitors pre-qualify leads before they make contact',
-    ],
-    targetPages: ['https://raineandhorne.com.au'],
-    whyItWorks: [
-      'Specific details answer key tenant questions upfront, reducing unqualified inquiries',
-      'Detailed property pages rank significantly better in Google searches for \'commercial property Dubbo\'',
-      'Rich media and comprehensive information builds trust and attracts serious, qualified tenants',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://www.eldersrealestate.com.au/commercial/rent/280-gipps-street-dubbo-nsw-2830-300P134693/',
-        gap: 'Features complete lease terms, zoning details, building specifications, and prominent enquiry buttons that convert visitors',
-      },
-      {
-        name: 'Elders Commercial Dubbo',
-        pageUrl: 'https://www.eldersrealestate.com.au/commercial/rent/24-church-street-dubbo-nsw-2830-300P135282/',
-        gap: 'Maintains current Dubbo commercial listings with comprehensive property details that rank well in searches',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://www.raywhite.com/nsw/dubbo/2104266',
-        gap: 'Actively promotes commercial availability with clear contact information and property specifications',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: '2/80 Gipps Street, Dubbo – Leased | Elders Real Estate',
-          source: 'eldersrealestate.com.au',
-          snippet: 'Shows detailed lease terms, zoning, building area, and enquiry options.',
-        },
-        {
-          title: '24 Church Street, Dubbo – For Lease | Elders Real Estate',
-          source: 'eldersrealestate.com.au',
-          snippet: 'Active Dubbo lease page with specifics and contact options.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching for commercial properties to lease in Dubbo want clear details like floor area, zoning, lease terms, and viewing info. Your site is missing consistently structured property details.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de04cc9c10756b6b6132d2', [
-      '1. Create standard template sections for all listings: floor area, zoning, lease terms, outgoings, parking details',
-      '2. Upload professional photos, floorplans, and 360-degree virtual tours where available',
-      '3. Add downloadable PDF brochures with property specifications and agent contact details',
-      '4. Install clear \'Book Inspection\' and \'Enquire Now\' buttons prominently on each listing',
-      '5. Link each property listing to your main Dubbo commercial leasing hub page for better SEO',
-    ]),
-  },
-
-  // 18 — 69de04cc9c10756b6b6132d3
-  {
-    id: '69de04cc9c10756b6b6132d3',
-    title: 'Create Dubbo Commercial Leasing Hub for Local Search Dominance',
-    description:
-      'Your competitors are capturing valuable commercial leasing searches in Dubbo with dedicated service hubs. Creating a comprehensive leasing hub that explains processes, pricing, and FAQs will establish your authority in the local market and capture high-intent searches.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'commercial-property-leasing',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 9, // region-specific: commercial Dubbo hub
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Build Dubbo commercial leasing service hub',
-    expectedImpact:
-      'This hub will capture broad commercial leasing searches in Dubbo, positioning your agency as the go-to resource for businesses seeking commercial property. You\'ll see increased organic traffic, more qualified inquiries, and improved visibility in both traditional search results and AI-powered answers.',
-    keyInsights: [
-      'Local businesses actively search for commercial leasing guidance specific to Dubbo',
-      'Comprehensive service pages outrank basic listing pages in modern search results',
-    ],
-    swotDrivers: [
-      'Opportunity: Capture unmet demand for commercial leasing information in Dubbo',
-      'Threat: Competitors are already establishing authority in this space',
-    ],
-    competitorsInsight: [
-      'Competitors with clear local leasing pages are winning comparison searches',
-      'Comprehensive explainers combined with current listings create trust and drive conversions',
-    ],
-    targetPages: ['https://raineandhorne.com.au'],
-    whyItWorks: [
-      'Businesses searching for commercial leasing in Dubbo need clear information about processes, costs, and legal requirements',
-      'Competitors like Elders Commercial Dubbo are already ranking for these high-value searches',
-      'Google and AI search tools prioritize comprehensive service hubs that answer common questions',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://commercialdubbo.eldersrealestate.com.au/commercial/rent/',
-        gap: 'They have dedicated local leasing pages that capture Dubbo-specific commercial property searches',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au',
-        gap: 'Achieving 17.1% visibility in local searches, competing directly for commercial leasing attention',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Commercial Properties For Lease | Elders Commercial Dubbo',
-          source: 'eldersrealestate.com.au',
-          snippet: 'Local commercial leasing pages attract searchers comparing agents in Dubbo.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching for commercial property leasing in Dubbo also look for how leasing works, typical costs, and legal steps. Your site lacks a focused Dubbo leasing hub.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de04cc9c10756b6b6132d3', [
-      '1. Create main hub page covering commercial leasing services for office, retail, and industrial properties',
-      '2. Add detailed sections on leasing process, typical pricing ranges, and timeline expectations',
-      '3. Include FAQ section addressing legal documents, solicitor requirements, and maintenance responsibilities',
-      '4. Showcase recent successful lease transactions with client testimonials',
-      '5. Integrate strong calls-to-action and direct links to current commercial listings',
-    ]),
-  },
-
-  // 19 — 69de062f9c10756b6b6132db
-  {
-    id: '69de062f9c10756b6b6132db',
-    title: 'Update Auction Details on Key Property Portals',
-    description:
-      'Your profiles on realestate.com.au and Domain may not clearly highlight auction services and upcoming events. Strengthening these listings will help you show up higher in search results for Dubbo auction searches and appear in AI answers, driving more calls and inquiries.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'real-estate-auctions',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 18, // moderately broad: key national portals
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Update portal auction listings',
-    whyItWorks: [
-      'Major property directories appear on page one for Dubbo auction searches and feed AI answers',
-      'Completing and improving these listings adds more places your business can be discovered',
-      'Strong directory pages often appear on page one and feed AI answers with accurate data',
-    ],
-    competitors: [],
-    sources: makeSources(
-      [
-        {
-          title: 'realestate.com.au (citation source)',
-          source: 'https://realestate.com.au',
-          snippet: 'Listed in provided citations with notable Share of Voice.',
-        },
-        {
-          title: 'domain.com.au (citation source)',
-          source: 'https://domain.com.au',
-          snippet: 'Listed in provided citations as a key directory.',
-        },
-      ],
-      'https://realestate.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People in Dubbo search for real estate auctions and agencies that run them. Your profiles may not clearly highlight auction services and upcoming events.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de062f9c10756b6b6132db', [
-      'Claim or access your profiles on realestate.com.au and Domain.',
-      'Add clear \'Real Estate Auctions in Dubbo\' service wording and service area.',
-      'Upload recent auction results, upcoming dates, photos, and team contacts.',
-      'Confirm phone, address, hours, and website are accurate and consistent.',
-      'Review monthly to keep listings fresh and active.',
-    ]),
-  },
-
-  // 20 — 69de062f9c10756b6b6132dc
-  {
-    id: '69de062f9c10756b6b6132dc',
-    title: 'Create Upcoming Auctions Page for Dubbo',
-    description:
-      'People search for real estate auctions today and upcoming auction dates in Dubbo. Matt Hansen Real Estate and Ray White Dubbo show upcoming auctions on their sites, helping customers act fast. Your site lacks a single page listing all upcoming auctions in one place.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'real-estate-auctions',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 7, // niche: single Dubbo auction calendar page
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish upcoming auctions page',
-    whyItWorks: [
-      'Captures \'auctions Dubbo\' and \'auctions today\' searches with clear, current information',
-      'Builds authority and repeat visits as buyers and sellers check dates regularly',
-      'Competitors showcase upcoming auctions prominently, directing motivated buyers to their sites',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au/upcoming-auctions/',
-        gap: 'Dedicated page showing upcoming auctions in Dubbo captures time-sensitive search traffic',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhitedubbo.com.au/',
-        gap: 'Highlights professional auction sales and shows new upcoming auctions on homepage',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Upcoming Property Auctions in Dubbo - Matt Hansen Real Estate',
-          source: 'https://matthansenrealestate.com.au/upcoming-auctions/',
-          snippet: 'Dedicated page showing upcoming auctions in Dubbo.',
-        },
-        {
-          title: 'Ray White Dubbo — Homepage mentions auctions',
-          source: 'https://raywhitedubbo.com.au/',
-          snippet: 'Highlights professional auction sales and shows new upcoming auctions.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People search for real estate auctions today and upcoming auction dates in Dubbo. Your site lacks a single page listing all upcoming auctions.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de062f9c10756b6b6132dc', [
-      'Publish an \'Upcoming Auctions – Dubbo\' page with a simple weekly calendar.',
-      'List property address/suburb, auction date/time, on-site/online, and contact.',
-      'Add filters for residential/commercial and link to each property detail page.',
-      'Link this page from the homepage and main menu; update weekly.',
-      'Include a short form: \'Get auction alerts\' to capture emails.',
-    ]),
-  },
-
-  // 21 — 69de062f9c10756b6b6132dd
-  {
-    id: '69de062f9c10756b6b6132dd',
-    title: 'Build Auction Services Page with Process and FAQs',
-    description:
-      'People search for real estate auction services in Dubbo to understand the selling method and costs. Your site lacks one detailed page that explains the full auction service, process, pricing approach, and local coverage. Creating this page will help you show up higher in search results and appear in AI answers.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'real-estate-auctions',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 6, // niche: single auction services page
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish auction services page',
-    whyItWorks: [
-      'A focused service page answers key questions and attracts sellers ready to act',
-      'It also gives AI and Google clear information to cite about your auction services',
-      'Elders publishes a comprehensive seller guide explaining auction as a method — this is the standard buyers expect',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://dubbo.eldersrealestate.com.au/wp-content/uploads/sites/82/2025/07/Elders_GuidetoSelling_Print.pdf',
-        gap: 'Explains auction as a method of sale within a comprehensive seller guide that Google indexes',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Elders Real Estate Dubbo – Guide to Selling (PDF)',
-          source: 'https://dubbo.eldersrealestate.com.au',
-          snippet: 'Explains auction as a method of sale within a seller guide.',
-        },
-      ],
-      'https://raineandhorne.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People search for real estate auction services in Dubbo to understand the selling method and costs. No dedicated auction service page exists on your site.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de062f9c10756b6b6132dd', [
-      'Outline service steps: appraisal, campaign, open homes, auction day, settlement.',
-      'Explain pricing approach, marketing packages, typical timelines, and vendor checklist.',
-      'Show recent local auction examples and plain-language FAQs for buyers and sellers.',
-      'State service area: Dubbo and nearby suburbs; add contact options.',
-      'Link this page from Buy, Sell, and homepage navigation.',
-    ]),
-  },
-
-  // 22 — 69de06ba9c10756b6b6132e5
-  {
-    id: '69de06ba9c10756b6b6132e5',
-    title: 'Create Dubbo Residential Sales Hub',
-    description:
-      'People searching on Google want residential property sales help in Dubbo and clear next steps. Competitors have dedicated residential sale and sold pages. Your site lacks a single, detailed Dubbo sales hub bringing process, pricing guidance, suburb coverage and FAQs together.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'residential-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 15, // moderately broad: residential Dubbo hub
-    tags: ['Content', 'Content Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Build residential sales hub page',
-    whyItWorks: [
-      'A focused hub helps Google understand your offer and directs visitors to contact you',
-      'Expect more qualified inquiries from people ready to sell their Dubbo property',
-      'Competitors with dedicated sales hubs capture sellers earlier in the research process',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://dubbo.eldersrealestate.com.au',
-        gap: 'Competitor page listing residential properties for sale in Dubbo',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhitedubbo.com.au',
-        gap: 'Competitor page listing sold homes in Dubbo and nearby suburbs',
-      },
-      {
-        name: 'Matt Hansen Real Estate',
-        pageUrl: 'https://matthansenrealestate.com.au',
-        gap: 'Competitor appraisal page encouraging sellers to request valuations',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Residential Properties For Sale | Elders Real Estate Dubbo',
-          source: 'dubbo.eldersrealestate.com.au',
-          snippet: 'Competitor page listing residential properties for sale in Dubbo.',
-        },
-        {
-          title: 'Homes sold in Dubbo and nearby - Ray White Dubbo',
-          source: 'raywhitedubbo.com.au',
-          snippet: 'Competitor page listing sold homes in Dubbo.',
-        },
-      ],
-      'https://raineandhorne.com.au/dubbo',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching on Google want residential property sales help in Dubbo and clear next steps. Your site lacks a single, detailed Dubbo sales hub.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de06ba9c10756b6b6132e5', [
-      'Outline sections: why choose you, sales timeline, selling methods, marketing plan, FAQs.',
-      'Add Dubbo suburb coverage and nearby towns; link to listings and contacts.',
-      'Explain selling costs and inclusions clearly; invite a free sales appraisal.',
-      'Place strong phone and form CTAs; link from top navigation.',
-    ]),
-  },
-
-  // 23 — 69de06ba9c10756b6b6132e6
-  {
-    id: '69de06ba9c10756b6b6132e6',
-    title: 'Show Dubbo Sold Results Gallery',
-    description:
-      'People searching on Google look for proven Dubbo residential sales results and local experience. Elders Real Estate Dubbo and Ray White Dubbo both display sold pages that prove activity and outcomes. Your site\'s recent sold proof is unclear or not prominent in one place.',
-    category: 'Content',
-    impactLabel: 'High impact',
-    effort: 'Medium',
-    themeId: 'residential-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 11, // region-specific: Dubbo sold gallery
-    tags: ['Content', 'Trust Boost'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Publish sold results gallery',
-    whyItWorks: [
-      'Public, organized sold results build confidence and encourage contact',
-      'This also gives Google fresh local proof to rank your pages higher',
-      'Competitors already showcase sold results, making them the default choice for sellers',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Elders Real Estate Dubbo',
-        pageUrl: 'https://dubbo.eldersrealestate.com.au',
-        gap: 'Competitor page showing recent sold results in Dubbo with suburb filters',
-      },
-      {
-        name: 'Ray White Dubbo',
-        pageUrl: 'https://raywhitedubbo.com.au',
-        gap: 'Competitor page listing sold homes in Dubbo and nearby suburbs',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Sold Residential Properties | Elders Real Estate Dubbo',
-          source: 'dubbo.eldersrealestate.com.au',
-          snippet: 'Competitor page showing recent sold results in Dubbo.',
-        },
-        {
-          title: 'Homes sold in Dubbo and nearby - Ray White Dubbo',
-          source: 'raywhitedubbo.com.au',
-          snippet: 'Competitor page listing sold homes in Dubbo.',
-        },
-      ],
-      'https://raineandhorne.com.au/dubbo/sold',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching on Google look for proven Dubbo residential sales results. Your recent sold proof is not prominent in one place.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de06ba9c10756b6b6132e6', [
-      'Collect 12–24 months of Dubbo sales with allowed details and dates.',
-      'Add suburb filters and a simple map view.',
-      'Write one-line stories per sale highlighting challenge and outcome.',
-      'Link each sale to agent profile and a contact form.',
-    ]),
-  },
-
-  // 24 — 69de06ba9c10756b6b6132e7
-  {
-    id: '69de06ba9c10756b6b6132e7',
-    title: 'Update Key Property Portal Profiles for Dubbo Sales',
-    description:
-      'People searching on Google also check realestate.com.au, Domain, and RateMyAgent when choosing who to sell with in Dubbo. These citation sites are active in your market and often appear for local searches. Your profiles may be incomplete or not showing recent Dubbo sales and reviews.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'residential-property-sales',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 17, // moderately broad: multiple portals
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Improve portal profiles with recent sales',
-    whyItWorks: [
-      'Stronger directory profiles create more citations and discovery paths back to your site',
-      'Expect more referral calls from buyers and sellers finding you on trusted platforms',
-      'Recent sales and reviews on portal profiles build immediate credibility',
-    ],
-    competitors: [],
-    sources: [],
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'These citation sites are active in your market and often appear for local residential sales searches. Your profiles may be incomplete or not showing recent Dubbo sales.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de06ba9c10756b6b6132e7', [
-      'Claim or verify each profile and match your business details exactly.',
-      'Add recent Dubbo sales, agent photos, and a link to your sales hub.',
-      'Upload fresh seller reviews and invite recent clients to review.',
-      'Add tracking links so inquiries route to your team quickly.',
-    ]),
-  },
-
-  // 25 — 69de07349c10756b6b6132ef
-  {
-    id: '69de07349c10756b6b6132ef',
-    title: 'Claim and Align Key Dubbo Directory Listings',
-    description:
-      'People searching for residential property leasing in Dubbo often check well-known local directories. DubboRealEstateAgency shows stronger presence among listings, and customers also use Domain, LocalSearch, and RateMyAgent. Your site likely lacks fully aligned, consistent listings with matching details across these places.',
-    category: 'Local SEO',
-    impactLabel: 'High impact',
-    effort: 'Quick win',
-    themeId: 'residential-property-leasing',
-    createdAt: CREATED_AT,
-    locationNames: LOCATION_NAMES,
-    locations: 13, // region-specific: Dubbo directory listings
-    tags: ['Local SEO', 'Quick Win'],
-    status: 'pending',
-    assignedTo: null,
-    assignChoice: null,
-    acceptedAt: null,
-    completedAt: null,
-    shortAction: 'Claim and align directory listings',
-    whyItWorks: [
-      'Cleaner, consistent listings boost presence across Google and directory sites',
-      'This increases referral calls and inquiries from motivated tenants and landlords',
-      'Missing or mismatched listings actively harm your local SEO trust signals',
-    ],
-    competitors: makeCompetitors([
-      {
-        name: 'Dubbo Real Estate Agency',
-        pageUrl: 'https://dubborealestateagency.com.au',
-        gap: 'Notable presence in Dubbo directory searches with complete, consistent listings',
-      },
-    ]),
-    sources: makeSources(
-      [
-        {
-          title: 'Dubbo Real Estate Agency directory',
-          source: 'https://dubborealestateagency.com.au',
-          snippet: 'Local directory with notable presence in Dubbo searches.',
-        },
-        {
-          title: 'Domain',
-          source: 'https://domain.com.au',
-          snippet: 'Major Australian real estate marketplace used by renters and landlords.',
-        },
-        {
-          title: 'LocalSearch',
-          source: 'https://localsearch.com.au',
-          snippet: 'Australian local business directory with service area pages.',
-        },
-        {
-          title: 'RateMyAgent',
-          source: 'https://ratemyagent.com.au',
-          snippet: 'Agent and agency review platform used by property owners.',
-        },
-      ],
-      'https://localsearch.com.au',
-    ),
-    contentGaps: [],
-    promptsTriggeringThis: [],
-    llmCoverageGap: {
-      platforms: [],
-      summary:
-        'People searching for residential property leasing in Dubbo often check well-known local directories. Your listings may be incomplete or mismatched across these platforms.',
-    },
-    generatedAsset: null,
-    checklist: makeChecklist('69de07349c10756b6b6132ef', [
-      'Claim or update profiles on Domain, LocalSearch, and RateMyAgent for Dubbo.',
-      'Match business name, phone, address, hours, and services exactly.',
-      'Add recent photos, team members, and a short leasing services summary.',
-      'Link to your leasing page and encourage a few new client reviews.',
-    ]),
-  },
 ]

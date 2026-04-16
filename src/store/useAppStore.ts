@@ -54,12 +54,12 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set(state => ({
       recommendations: state.recommendations.map(r =>
         r.id === id
-          ? { ...r, status: 'accepted', assignChoice, assignedTo: assignedTo ?? null, acceptedAt: new Date().toISOString() }
+          ? { ...r, status: 'accepted', assignChoice, assignedTo: assignedTo ?? null, acceptedAt: new Date().toISOString(), acceptedBy: 'James Smith' }
           : r
       ),
       metrics: { ...state.metrics, searchAiScore: Math.min(100, state.metrics.searchAiScore + 2) },
     }))
-    get().addToast('Task accepted! View it in your action plan.', 'success')
+    get().addToast('Recommendation is accepted', 'success')
   },
 
   rejectRec: (id) => {
@@ -167,7 +167,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   addToast: (message, type = 'success') => {
     const id = Date.now().toString()
     set(state => ({ toasts: [...state.toasts, { id, message, type }] }))
-    setTimeout(() => get().removeToast(id), 4000)
+    setTimeout(() => get().removeToast(id), 5000)
   },
 
   removeToast: (id) => {

@@ -14,14 +14,23 @@ export type LLMPlatform = 'ChatGPT' | 'Gemini' | 'Perplexity' | 'Claude'
 export type AssignChoice = 'self' | 'team' | 'remind'
 export type ViewMode = 'list' | 'kanban'
 
+export interface CompetitorPlatformSnippet {
+  platform: LLMPlatform
+  prompt: string
+  snippet: string
+}
+
 export interface Competitor {
   id: string
   name: string
+  pageUrl?: string
   llmSnippet: string
   citedBy: LLMPlatform[]
   totalCitations: number
+  citationRank: number
   sourceGaps: string[]
   whyTheyWin: string
+  platformSnippets?: CompetitorPlatformSnippet[]
 }
 
 export interface SourceReference {
@@ -39,6 +48,8 @@ export interface ContentGap {
   recommendation: string
 }
 
+export type ChecklistStepType = 'link' | 'nap' | 'keyword' | 'task'
+
 export interface ChecklistStep {
   id: string
   label: string
@@ -47,6 +58,16 @@ export interface ChecklistStep {
   autoCompleted: boolean
   ctaLabel?: string
   ctaAction?: 'approve_asset' | 'copy_link' | 'assign' | 'open_content_hub' | 'mark_done'
+  /** Drives the rich content box rendered below the description */
+  stepType?: ChecklistStepType
+  /** For stepType 'link' — list of URLs to display as clickable rows */
+  links?: { label: string; url: string }[]
+  /** For stepType 'nap' — exact business details the user should copy */
+  napData?: { name: string; address: string; phone: string }
+  /** For stepType 'keyword' — search phrases to copy into the profile */
+  keywords?: string[]
+  /** For any step that targets a specific page URL */
+  targetPage?: string
 }
 
 export interface GeneratedAsset {
@@ -73,6 +94,7 @@ export interface Recommendation {
   assignedTo: string | null
   assignChoice: AssignChoice | null
   acceptedAt: string | null
+  acceptedBy: string | null
   completedAt: string | null
   whyItWorks: string[]
   competitors: Competitor[]
@@ -87,6 +109,7 @@ export interface Recommendation {
   checklist: ChecklistStep[]
   targetPages?: string[]
   shortAction?: string
+  youCitations?: number
   expectedImpact?: string
   keyInsights?: string[]
   swotDrivers?: string[]
@@ -100,4 +123,5 @@ export interface BusinessMetrics {
   citationShare: number
   rank: number
   sentiment: number
+  youCitations: number
 }
