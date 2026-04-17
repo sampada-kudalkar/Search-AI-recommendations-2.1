@@ -301,34 +301,18 @@ function CompetitorIntelligenceLayout({
                     <span className="text-[#ccc]">·</span>
                     <span className="text-[12px] text-[#555] leading-[18px]">Citation rank #{comp.citationRank}</span>
                   </div>
-                  {/* Platform badges */}
-                  {comp.citedBy.length > 0 && (
-                    <div className="flex items-center gap-1 mt-1 flex-wrap">
-                      {comp.citedBy.map(p => {
-                        const clr = LLM_PLATFORM_COLORS[p]
-                        return (
-                          <span
-                            key={p}
-                            className="text-[10px] px-1.5 py-0.5 rounded font-medium"
-                            style={clr ? { backgroundColor: clr.bg, color: clr.text } : { backgroundColor: '#f3f4f6', color: '#555' }}
-                          >
-                            {p}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  )}
-                  {/* Snippet */}
-                  <p className="text-[12px] text-[#555] leading-[18px] mt-1 line-clamp-2">
-                    {comp.llmSnippet}
-                  </p>
-                  {/* View citations toggle */}
-                  <button
-                    onClick={() => setExpandedCompetitor(isExpanded ? null : i)}
-                    className="mt-1 text-[12px] text-[#1976d2] hover:underline flex-shrink-0"
-                  >
-                    {isExpanded ? 'Hide citations ↑' : 'View citations ↓'}
-                  </button>
+                  {/* Snippet + inline View citations button */}
+                  <div className="flex items-center gap-1 mt-1 min-w-0">
+                    <p className="text-[12px] text-[#555] leading-[18px] truncate flex-1 min-w-0">
+                      {comp.llmSnippet}
+                    </p>
+                    <button
+                      onClick={() => setExpandedCompetitor(isExpanded ? null : i)}
+                      className="text-[12px] font-medium text-[#212121] hover:underline flex-shrink-0 cursor-pointer"
+                    >
+                      {isExpanded ? 'Hide citations' : 'View citations'}
+                    </button>
+                  </div>
 
                   {/* Expanded: page link + per-platform snippets + your position */}
                   {isExpanded && (
@@ -705,7 +689,7 @@ export default function TaskDetailPage() {
                 {extraLocations > 0 && (
                   <span
                     ref={locMoreRef}
-                    className="text-[13px] text-[#1976d2] cursor-pointer hover:underline"
+                    className="text-[12px] font-medium text-[#212121] cursor-pointer hover:underline"
                     onMouseEnter={handleLocEnter}
                     onMouseLeave={() => setShowLocHover(false)}
                   >

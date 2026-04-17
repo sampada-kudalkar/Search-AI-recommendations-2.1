@@ -5,6 +5,7 @@ import type { RecCategory } from '../../types'
 import AssignModal from './AssignModal'
 import { nsaThemesConfig } from '../../data/nsaThemesConfig'
 import { getLocationsForRec } from '../../data/locationsData'
+import { useAppStore } from '../../store/useAppStore'
 
 const BASE = import.meta.env.BASE_URL
 
@@ -154,13 +155,14 @@ function KanbanCard({ rec }: { rec: Recommendation }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function ListCard({ rec }: { rec: Recommendation }) {
   const navigate = useNavigate()
+  const rejectRec = useAppStore(s => s.rejectRec)
   const locationCount = rec.locations ?? 1
   const [showLocations, setShowLocations] = useState(false)
 
   return (
     <div
       onClick={() => navigate(`/recommendations/${rec.id}`)}
-      className="border-b border-[#eaeaea] px-6 py-5 cursor-pointer hover:bg-[#fafafa] transition-colors"
+      className="border-b border-[#eaeaea] px-8 py-5 cursor-pointer hover:bg-[#fafafa] transition-colors"
     >
       {/* Row 1: chips (left) + locations (right) */}
       <div className="flex items-center justify-between gap-4 mb-3">
@@ -211,11 +213,55 @@ function ListCard({ rec }: { rec: Recommendation }) {
       </p>
 
       {/* Row 4: score nudge */}
-      <div className="flex items-center gap-2 bg-[#f9f7fd] px-2 py-2 rounded">
+      <div className="flex items-center gap-2 bg-[#f9f7fd] px-2 pt-2 pb-2 rounded mt-5 mb-5">
         <TrendUpIcon />
         <span className="text-[13px] text-[#555] leading-[18px] tracking-[-0.26px]">
           {buildImpactMessage(rec)}
         </span>
+      </div>
+
+      {/* Row 5: CTAs */}
+      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+        <button
+          onClick={() => navigate(`/recommendations/${rec.id}`)}
+          style={{
+            height: 36,
+            padding: '8px 12px',
+            border: '1px solid #e5e9f0',
+            borderRadius: 4,
+            background: 'white',
+            fontSize: 14,
+            lineHeight: '20px',
+            letterSpacing: '-0.28px',
+            color: '#212121',
+            cursor: 'pointer',
+            fontFamily: 'Roboto, sans-serif',
+            fontWeight: 400,
+          }}
+          className="hover:bg-[#f5f5f5] transition-colors whitespace-nowrap"
+        >
+          View details
+        </button>
+        <button
+          onClick={() => rejectRec(rec.id)}
+          style={{
+            height: 36,
+            padding: '8px 12px',
+            border: '1px solid #e5e9f0',
+            borderRadius: 4,
+            background: 'white',
+            fontSize: 14,
+            lineHeight: '20px',
+            letterSpacing: '-0.28px',
+            color: '#212121',
+            cursor: 'pointer',
+            fontFamily: 'Roboto, sans-serif',
+            fontWeight: 400,
+          }}
+          className="hover:bg-[#f5f5f5] transition-colors whitespace-nowrap"
+        >
+          Reject
+        </button>
       </div>
     </div>
   )
