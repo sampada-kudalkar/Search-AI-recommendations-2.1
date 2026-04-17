@@ -110,7 +110,7 @@ function KanbanCard({ rec }: { rec: Recommendation }) {
     <>
       <div className="bg-white border border-[#eaeaea] p-3 hover:border-[#c0c0c0] transition-all rounded-sm">
         <div className="flex flex-wrap gap-1.5 mb-2">
-          <Chip className="bg-white border border-[#cccccc] text-[#212121]">{rec.category}</Chip>
+          <Chip className="bg-[#eaeaea] text-[#555]">{rec.category}</Chip>
           <EffortChip effort={rec.effort} />
         </div>
         <p className="text-[13px] text-[#212121] leading-[18px] tracking-[-0.26px] line-clamp-2 mb-2 font-normal">
@@ -168,7 +168,7 @@ function ListCard({ rec }: { rec: Recommendation }) {
       <div className="flex items-center justify-between gap-4 mb-3">
         {/* Left: category + effort chips */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Chip className="bg-white border border-[#cccccc] text-[#212121]">{rec.category}</Chip>
+          <Chip className="bg-[#eaeaea] text-[#555]">{rec.category}</Chip>
           <EffortChip effort={rec.effort} />
         </div>
 
@@ -208,7 +208,7 @@ function ListCard({ rec }: { rec: Recommendation }) {
       </p>
 
       {/* Row 3: description */}
-      <p className="text-[14px] text-[#555] leading-[20px] tracking-[-0.28px] font-light line-clamp-2 mb-3">
+      <p className="text-[14px] text-[#555] leading-[20px] tracking-[-0.28px] font-normal line-clamp-2 mb-3">
         {rec.description}
       </p>
 

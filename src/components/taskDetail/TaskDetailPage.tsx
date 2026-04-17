@@ -8,6 +8,24 @@ import type { ChecklistStep } from '../../types'
 
 const BASE = import.meta.env.BASE_URL
 
+// ── Styled dark tooltip wrapper ───────────────────────────────────────────────
+function StyledTooltip({ label, children }: { label: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div
+      className="relative inline-flex"
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      {visible && (
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1 bg-[#212121] text-white text-[11px] leading-[16px] rounded-full whitespace-nowrap pointer-events-none z-50 shadow-sm">
+          {label}
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Reusable accordion (controlled) ──────────────────────────────────────────
 function Accordion({
@@ -44,7 +62,7 @@ function Accordion({
 // ── Sidebar metadata row ──────────────────────────────────────────────────────
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1 py-3">
+    <div className="flex flex-col gap-1 pt-3 pb-2">
       <span className="text-[11px] text-[#888] leading-[14px] tracking-[0.44px] uppercase font-normal">
         {label}
       </span>
@@ -594,14 +612,14 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="flex flex-1 min-h-0 overflow-hidden pl-6 pb-5">
+    <div className="flex flex-1 min-h-0 overflow-hidden pl-6 pb-2">
 
       {/* ══════════════════════════════════════════════════════════
           LEFT CARD
       ══════════════════════════════════════════════════════════ */}
       <div
         className="flex flex-col flex-shrink-0 border border-[#eaeaea] bg-white overflow-hidden rounded-[8px]"
-        style={{ width: '30vw' }}
+        style={{ width: '30%' }}
       >
         {/* ── Main container — unified wrapper for all card content ── */}
         <div className="flex flex-col flex-1 overflow-y-auto min-h-0">
@@ -613,7 +631,7 @@ export default function TaskDetailPage() {
               Accepted
             </span>
           )}
-          <span className="inline-flex items-center px-2 py-1 rounded text-[12px] leading-[18px] tracking-[-0.24px] bg-white border border-[#cccccc] text-[#212121] font-normal">
+          <span className="inline-flex items-center px-2 py-1 rounded text-[12px] leading-[18px] tracking-[-0.24px] bg-[#eaeaea] text-[#555] font-normal">
             {rec.category}
           </span>
           {rec.effort === 'Quick win' && (
@@ -633,42 +651,36 @@ export default function TaskDetailPage() {
         </div>
 
         {/* Title */}
-        <p className="px-5 pb-3 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px] font-normal">
+        <p className="px-5 pb-1 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px] font-normal">
           {rec.title}
+        </p>
+
+        {/* Description */}
+        <p className="px-5 pb-4 text-[12px] text-[#555] leading-[20px] font-normal">
+          {rec.description}
         </p>
 
         {/* Action icon buttons */}
         <div className="flex items-center gap-2 px-5 pb-3">
-          {/* Assign */}
-          <button
-            title="Assign"
-            className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-          </button>
           {/* Notify */}
-          <button
-            title="Notify"
-            className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-              <polyline points="22,6 12,13 2,6" />
-            </svg>
-          </button>
+          <StyledTooltip label="Notify">
+            <button className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+            </button>
+          </StyledTooltip>
           {/* Download */}
-          <button
-            title="Download"
-            className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-          </button>
+          <StyledTooltip label="Download">
+            <button className="w-7 h-7 flex items-center justify-center border border-[#eaeaea] rounded hover:bg-[#f5f5f5] transition-colors">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+            </button>
+          </StyledTooltip>
         </div>
 
         {/* ── ACCORDION: Basic details ─────────────────────────── */}
@@ -677,7 +689,7 @@ export default function TaskDetailPage() {
             <InfoRow label="Type">{rec.category}</InfoRow>
             {rec.expectedImpact && (
               <InfoRow label="Impact">
-                <span className="text-[13px] text-[#555] leading-[20px]">{rec.expectedImpact}</span>
+                <span className="text-[12px] font-medium text-[#212121] leading-[20px]">{rec.expectedImpact}</span>
               </InfoRow>
             )}
             {themeConfig && (
@@ -776,7 +788,7 @@ export default function TaskDetailPage() {
 
         {/* Tab bar */}
         <div className="flex border-b border-[#eaeaea] mx-6 flex-shrink-0 bg-white">
-          {(['Why it works', 'References', 'Intelligence'] as const).map((tab, i) => (
+          {(['Implementation', 'References', 'Intelligence'] as const).map((tab, i) => (
             <button
               key={tab}
               onClick={() => setTab(i)}
@@ -802,28 +814,13 @@ export default function TaskDetailPage() {
         {/* ─────── TAB CONTENT ──────────────────────────────────── */}
         <div className="flex-1 overflow-y-auto bg-white">
 
-          {/* ── TAB 0: Why it works ─────────────────────────────── */}
+          {/* ── TAB 0: Implementation ────────────────────────────── */}
           {activeTab === 0 && (
-            <div className="px-6 py-5 flex flex-col gap-1">
-
-              {/* Section A: Why it works */}
-              <div className="p-5 border border-[#eaeaea] rounded-lg">
-                <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
-                  Why it works
-                </p>
-                <ul className="flex flex-col gap-2.5">
-                  {rec.whyItWorks.map((pt, i) => (
-                    <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
-                      <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            <div className="px-6 pb-5 flex flex-col">
 
               {/* Section B: What to do next */}
-              <div className="my-5 border border-[#eaeaea] rounded-lg">
-                <div className="flex items-start justify-between mb-1 py-4 px-5">
+              <div className="my-5 rounded-lg">
+                <div className="flex items-start justify-between mb-1 pt-4 pb-2 px-5">
                   <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px]">
                     What to do next
                   </p>
@@ -971,6 +968,23 @@ export default function TaskDetailPage() {
           {/* ── TAB 2: Intelligence ─────────────────────────────── */}
           {activeTab === 2 && (
             <div className="px-6 py-5 flex flex-col gap-5">
+
+              {/* ── Why it works ────────────────────────────────── */}
+              {rec.whyItWorks.length > 0 && (
+                <div className="p-5 border border-[#eaeaea] rounded-lg">
+                  <p className="text-[14px] font-normal text-[#212121] leading-[22px] tracking-[-0.28px] mb-3">
+                    Why it works
+                  </p>
+                  <ul className="flex flex-col gap-2.5">
+                    {rec.whyItWorks.map((pt, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-[14px] text-[#212121] leading-[22px] tracking-[-0.28px]">
+                        <span className="mt-[8px] w-[5px] h-[5px] rounded-full bg-[#555] flex-shrink-0" />
+                        {pt}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* ── A: Competitive Intelligence Card — hidden when no competitors ── */}
               {rec.competitors.length > 0 && (
